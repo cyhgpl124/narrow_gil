@@ -8,8 +8,13 @@ abstract class AttendanceStatsEvent extends Equatable {
 
 class AttendanceStatsRequested extends AttendanceStatsEvent {
   final String churchName;
-  const AttendanceStatsRequested(this.churchName);
+  // <<< ✨ [추가] 선택된 월 정보를 담을 필드
+  final DateTime selectedDate;
+
+  // <<< ✨ [수정] 생성자에 selectedDate 추가
+  const AttendanceStatsRequested(this.churchName, this.selectedDate);
 
   @override
-  List<Object> get props => [churchName];
+  // <<< ✨ [수정] props에 selectedDate 추가
+  List<Object> get props => [churchName, selectedDate];
 }

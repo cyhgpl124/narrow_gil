@@ -36,10 +36,13 @@ class AttendanceCheckView extends StatelessWidget {
             icon: const Icon(Icons.bar_chart),
             tooltip: '출석 통계',
             onPressed: () {
-              final selectedChurch = context.read<AttendanceCheckBloc>().state.selectedChurch;
+              // <<< ✨ [수정] 현재 상태에서 교회 이름과 선택된 월(focusedDay)을 가져옵니다.
+              final state = context.read<AttendanceCheckBloc>().state;
+              final selectedChurch = state.selectedChurch;
+              final selectedDate = state.focusedDay; // <-- 활성화된 월
               if (selectedChurch.isNotEmpty) {
                 Navigator.of(context).push(MaterialPageRoute(
-                  builder: (_) => AttendanceStatsPage(churchName: selectedChurch),
+                  builder: (_) => AttendanceStatsPage(churchName: selectedChurch, selectedDate: selectedDate),
                 ));
               }
             },
@@ -247,7 +250,7 @@ class _AttendanceSummary extends StatelessWidget {
         final monthName = DateFormat.MMMM('ko_KR').format(state.focusedDay);
         // ✨ 선택된 멤버의 이름을 표시하도록 수정
         final title = state.canCheckForOthers ? '${state.selectedMemberName} 님의 $monthName 출석 현황' : '$monthName 출석 현황';
-        
+
         return Card(
           margin: const EdgeInsets.symmetric(horizontal: 16),
           child: Padding(

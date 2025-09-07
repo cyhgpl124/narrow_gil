@@ -15,26 +15,30 @@ import 'package:narrow_gil/features/user/services/file_saver.dart';
 
 class AttendanceStatsPage extends StatelessWidget {
   final String churchName;
-  const AttendanceStatsPage({super.key, required this.churchName});
+  final DateTime selectedDate;
+  const AttendanceStatsPage({super.key, required this.churchName, required this.selectedDate});
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => AttendanceStatsBloc()..add(AttendanceStatsRequested(churchName)),
-      child: AttendanceStatsView(churchName: churchName),
+      create: (context) => AttendanceStatsBloc()..add(AttendanceStatsRequested(churchName, selectedDate)),
+      child: AttendanceStatsView(churchName: churchName, selectedDate: selectedDate),
     );
   }
 }
 
 class AttendanceStatsView extends StatelessWidget {
   final String churchName;
-  const AttendanceStatsView({super.key, required this.churchName});
+  final DateTime selectedDate;
+  const AttendanceStatsView({super.key, required this.churchName, required this.selectedDate});
 
   @override
   Widget build(BuildContext context) {
+    final monthString = DateFormat('yyyy년 M월').format(selectedDate);
+
     return Scaffold(
           appBar: AppBar(
-            title: Text('$churchName 출석 통계'),
+            title: Text('$monthString $churchName 출석 통계'),
           ),
           body: BlocBuilder<AttendanceStatsBloc, AttendanceStatsState>(
             builder: (context, state) {
@@ -44,6 +48,7 @@ class AttendanceStatsView extends StatelessWidget {
                 return _AttendanceStatsTable(
                     attendanceList: state.attendanceList,
                     churchName: churchName,
+                    selectedDate: selectedDate,
                     screenshotController: ScreenshotController(),
                 );
               } else if (state is AttendanceStatsLoadFailure) {
@@ -60,18 +65,21 @@ class AttendanceStatsView extends StatelessWidget {
 class _AttendanceStatsTable extends StatelessWidget {
   final List<UserAttendance> attendanceList;
   final String churchName;
+  final DateTime selectedDate;
   final ScreenshotController screenshotController;
 
   const _AttendanceStatsTable(
       {required this.attendanceList,
         required this.churchName,
+        required this.selectedDate,
         required this.screenshotController,
       });
 
   @override
   Widget build(BuildContext context) {
-    final now = DateTime.now();
-    final daysInMonth = DateTime(now.year, now.month + 1, 0).day;
+    // <<< ✨ [수정] DateTime.now() 대신 전달받은 selectedDate 사용
+    final daysInMonth = DateTime(selectedDate.year, selectedDate.month + 1, 0).day;
+    const weekDays = ['월', '화', '수', '목', '금', '토', '일'];
 
     return Column(
         children: [
@@ -81,30 +89,43 @@ class _AttendanceStatsTable extends StatelessWidget {
               child: SingleChildScrollView(
                 child: Screenshot(
                   controller: screenshotController,
-                  child: DataTable(
-                    columnSpacing: 16.0,
-                    horizontalMargin: 16.0,
-                    columns: [
-                      const DataColumn(label: Text('구역', style: TextStyle(fontWeight: FontWeight.bold))),
-                      const DataColumn(label: Text('세례', style: TextStyle(fontWeight: FontWeight.bold))),
-                      const DataColumn(label: Text('이름', style: TextStyle(fontWeight: FontWeight.bold))),
-                      const DataColumn(label: Text('생년월일', style: TextStyle(fontWeight: FontWeight.bold))),
-                      const DataColumn(label: Text('만나이', style: TextStyle(fontWeight: FontWeight.bold))),
-                      ...List.generate(
-                        daysInMonth,
-                            (index) => DataColumn(
-                          label: Text(
-                            (index + 1).toString(),
-                            style: const TextStyle(fontSize: 12),
-                            textAlign: TextAlign.center,
-                          ),
+                  // <<< ✨ [완료] 이미지 저장 시 배경색이 포함되도록 Container로 감싸기
+                  child: Container(
+                    color: Theme.of(context).scaffoldBackgroundColor,
+                    padding: const EdgeInsets.all(8.0),
+                    child: DataTable(
+                      headingRowColor: WidgetStateProperty.resolveWith<Color?>((states) => Colors.grey.shade800),
+                      columnSpacing: 16.0,
+                      horizontalMargin: 16.0,
+                      columns: [
+                        const DataColumn(label: Text('구역', style: TextStyle(fontWeight: FontWeight.bold))),
+                        const DataColumn(label: Text('세례', style: TextStyle(fontWeight: FontWeight.bold))),
+                        const DataColumn(label: Text('이름', style: TextStyle(fontWeight: FontWeight.bold))),
+                        const DataColumn(label: Text('생년월일', style: TextStyle(fontWeight: FontWeight.bold))),
+                        const DataColumn(label: Text('만나이', style: TextStyle(fontWeight: FontWeight.bold))),
+                        ...List.generate(
+                          daysInMonth,
+                              (index) {
+                                final day = index + 1;
+                                final date = DateTime(selectedDate.year, selectedDate.month, day);
+                                final dayOfWeek = weekDays[date.weekday - 1];
+                                return DataColumn(
+                                  label: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text(day.toString(), style: const TextStyle(fontSize: 12)),
+                                      Text('($dayOfWeek)', style: TextStyle(fontSize: 10, color: Colors.grey.shade400)),
+                                    ],
+                                  ),
+                                );
+                              }
                         ),
-                      ),
-                    ],
-                    rows: [
-                      ...attendanceList.map((userAttendance) =>
-                          _buildDataRow(userAttendance, daysInMonth, context)),
-                    ],
+                      ],
+                      rows: [
+                        ...attendanceList.map((userAttendance) =>
+                            _buildDataRow(userAttendance, daysInMonth, context)),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -127,7 +148,7 @@ class _AttendanceStatsTable extends StatelessWidget {
   DataRow _buildDataRow(UserAttendance userAttendance, int daysInMonth,
       BuildContext context) {
     final user = userAttendance.user;
-    final age = _calculateAge(user.birthdate);
+    final age = _calculateAge(user.birthdate, selectedDate);
     final isMember = user.church == churchName;
 
     return DataRow(
@@ -149,8 +170,9 @@ class _AttendanceStatsTable extends StatelessWidget {
         ...List.generate(
           daysInMonth,
           (dayIndex) {
+            // <<< ✨ [수정] DateTime.now() 대신 전달받은 selectedDate 사용
             final currentDate =
-                DateTime.utc(DateTime.now().year, DateTime.now().month, dayIndex + 1);
+                DateTime.utc(selectedDate.year, selectedDate.month, dayIndex + 1);
             final attendanceStatus =
                 userAttendance.attendanceRecords[currentDate] ??
                     AttendanceStatus.none;
@@ -179,21 +201,23 @@ class _AttendanceStatsTable extends StatelessWidget {
     );
   }
 
-  int _calculateAge(String birthdate) {
+  // <<< ✨ [수정] 나이 계산 함수에 기준 날짜(baseDate)를 받도록 변경
+  int _calculateAge(String birthdate, DateTime baseDate) {
     if (birthdate.length != 6) return 0;
     try {
       int year = int.parse(birthdate.substring(0, 2));
       final int month = int.parse(birthdate.substring(2, 4));
       final int day = int.parse(birthdate.substring(4, 6));
 
-      int currentYearLastTwoDigits = DateTime.now().year % 100;
+      // 2000년대생과 1900년대생 구분
+      int currentYearLastTwoDigits = baseDate.year % 100;
       year += (year > currentYearLastTwoDigits) ? 1900 : 2000;
 
       final birthDate = DateTime(year, month, day);
-      final today = DateTime.now();
-      int age = today.year - birthDate.year;
-      if (today.month < birthDate.month ||
-          (today.month == birthDate.month && today.day < birthDate.day)) {
+      // 기준 날짜(baseDate)로 나이 계산
+      int age = baseDate.year - birthDate.year;
+      if (baseDate.month < birthDate.month ||
+          (baseDate.month == birthDate.month && baseDate.day < birthDate.day)) {
         age--;
       }
       return age;
@@ -204,9 +228,8 @@ class _AttendanceStatsTable extends StatelessWidget {
 
   Future<void> _exportToExcel(BuildContext context) async {
     try {
-      final now = DateTime.now();
-      final daysInMonth = DateTime(now.year, now.month + 1, 0).day;
-      final monthString = DateFormat('yyyy-MM').format(now);
+      final daysInMonth = DateTime(selectedDate.year, selectedDate.month + 1, 0).day;
+      final monthString = DateFormat('yyyy-MM').format(selectedDate);
       final fileName = '${churchName}_${monthString}_attendance.xlsx';
 
       var excel = Excel.createExcel();
@@ -223,9 +246,9 @@ class _AttendanceStatsTable extends StatelessWidget {
 
       for (var userAttendance in attendanceList) {
         final user = userAttendance.user;
-        final age = _calculateAge(user.birthdate);
+        final age = _calculateAge(user.birthdate, selectedDate);
         final attendanceData = List.generate(daysInMonth, (dayIndex) {
-          final currentDate = DateTime.utc(now.year, now.month, dayIndex + 1);
+          final currentDate = DateTime.utc(selectedDate.year, selectedDate.month, dayIndex + 1);
           final status = userAttendance.attendanceRecords[currentDate] ?? AttendanceStatus.none;
           return _getAttendanceIndicatorText(status);
         });
@@ -275,7 +298,7 @@ class _AttendanceStatsTable extends StatelessWidget {
         throw Exception("Failed to capture image.");
       }
 
-      final monthString = DateFormat('yyyy-MM').format(DateTime.now());
+      final monthString = DateFormat('yyyy-MM').format(selectedDate);
       final fileName = '${churchName}_${monthString}_attendance.png';
 
       // ✨ [수정] 플랫폼 분기 로직을 삭제하고 saveFile 함수만 호출합니다.
