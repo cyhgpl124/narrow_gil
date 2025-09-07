@@ -17,19 +17,6 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-
-  // <<< ✨ [추가] 앱 시작 시 리디렉션 로그인 결과 처리 ✨ >>>
-  // 웹 환경에서만 실행됩니다.
-  if (kIsWeb) {
-    try {
-      // 사용자가 Google 로그인 후 사이트로 돌아왔을 때, 그 결과를 처리합니다.
-      await FirebaseAuth.instance.getRedirectResult();
-    } catch (e) {
-      // 오류가 발생해도 앱 실행은 계속되도록 처리합니다.
-      debugPrint("Error getting redirect result: $e");
-    }
-  }
-  // <<< ✨ [추가] 여기까지 ✨ >>>
   runApp(const MyApp());
 }
 
@@ -557,54 +544,43 @@ class _LoginPageState extends State<LoginPage> {
     setState(() {
       _isSigningIn = true;
     });
-
     try {
-      final GoogleAuthProvider googleProvider = GoogleAuthProvider();
+      final String? webClientId = dotenv.env['GOOGLE_WEB_CLIENT_ID'];
+      final GoogleSignInAccount? googleUser =
+          await GoogleSignIn(clientId: webClientId).signIn();
 
-      // <<< 🚀 [수정] 웹/모바일 환경에 따라 다른 로그인 방식 사용 🚀 >>>
-      // 웹(모바일웹 포함) 환경에서는 리디렉션 방식을 사용합니다.
-      if (kIsWeb) {
-        // 페이지가 구글 로그인 화면으로 넘어가므로 로딩 상태를 여기서 해제할 필요가 없습니다.
-        await FirebaseAuth.instance.signInWithRedirect(googleProvider);
-      } else {
-        // 네이티브 앱(Android/iOS) 환경에서는 기존의 google_sign_in 패키지를 사용합니다.
-        final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
-
-        if (googleUser == null) {
-          // 사용자가 로그인을 취소한 경우
-          if (mounted) setState(() => _isSigningIn = false);
-          return;
-        }
-
-        final GoogleSignInAuthentication googleAuth =
-            await googleUser.authentication;
-        final credential = GoogleAuthProvider.credential(
-          accessToken: googleAuth.accessToken,
-          idToken: googleAuth.idToken,
-        );
-
-        await FirebaseAuth.instance.signInWithCredential(credential);
-
-        // 네이티브 앱에서는 로그인 완료 후 로딩 상태를 해제합니다.
-        if (mounted) {
-          setState(() {
-            _isSigningIn = false;
-          });
-        }
+      if (googleUser == null) {
+        if (mounted) setState(() => _isSigningIn = false);
+        return;
       }
-      // <<< 🚀 [수정] 여기까지 🚀 >>>
 
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      await FirebaseAuth.instance.signInWithCredential(credential);
+    } on FirebaseAuthException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Firebase 로그인 오류: ${e.message}')),
+        );
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('로그인 중 오류가 발생했습니다: $e')),
+          SnackBar(content: Text('알 수 없는 오류가 발생했습니다: $e')),
         );
+      }
+    } finally {
+      if (mounted) {
         setState(() {
           _isSigningIn = false;
         });
       }
     }
-    // `signInWithRedirect`는 페이지를 벗어나므로, `finally` 블록에서 로딩 상태를 해제하면 안됩니다.
   }
 
   @override
@@ -629,46 +605,30 @@ class _LoginPageState extends State<LoginPage> {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 const Spacer(flex: 3),
-                // 앱 타이틀 (디자인 개선)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Text(
-                        '좁은 길, 생명의 길',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 40,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                          letterSpacing: 1.2,
-                          shadows: [
-                            Shadow(
-                              blurRadius: 10.0,
-                              color: Colors.black54,
-                              offset: Offset(2.0, 2.0),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Container(
-                        width: 100,
-                        height: 1,
-                        color: Colors.white.withOpacity(0.5),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        '하늘에 보물을 쌓는 여정',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 18,
-                          color: Colors.white.withOpacity(0.9),
-                          letterSpacing: 1.5,
-                        ),
+                // 앱 타이틀
+                const Text(
+                  '좁은 길, 생명의 길',
+                  style: TextStyle(
+                    fontSize: 32,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                    letterSpacing: 1.2,
+                    shadows: [
+                      Shadow(
+                        blurRadius: 10.0,
+                        color: Colors.black54,
+                        offset: Offset(2.0, 2.0),
                       ),
                     ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                // 부제
+                Text(
+                  '하늘에 보물을 쌓는 여정',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.white.withOpacity(0.8),
                   ),
                 ),
                 const Spacer(flex: 4),
@@ -688,7 +648,7 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  // 구글 로그인 버튼
+  // 구글 로그인 버튼을 별도의 위젯으로 분리하여 가독성 향상
   Widget _buildGoogleSignInButton() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 40.0),
