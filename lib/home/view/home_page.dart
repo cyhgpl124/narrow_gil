@@ -433,7 +433,7 @@ class _HomeViewState extends State<HomeView> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              '${notice.author} · ${DateFormat('yy.MM.dd').format(notice.createdAt.toDate())}',
+              '${notice.author} · 마감날짜: ${DateFormat('yy.MM.dd').format(notice.dueDate.toDate())}',
               style: Theme.of(context).textTheme.bodySmall,
             ),
             if (isOverflowing)
