@@ -39,7 +39,7 @@ class ForumService {
             .collection('members')
             .where('baptismDate', isGreaterThan: "")
             .get();
-        totalMemberCount = membersSnapshot.docs.length;
+        totalMemberCount = membersSnapshot.docs.length-1; // 목회자는 통계제외
       }
 
       // 3. 실제 출석 인원을 계산합니다.

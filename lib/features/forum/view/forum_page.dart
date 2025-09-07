@@ -611,9 +611,25 @@ class _ForumPageState extends State<ForumPage> {
                 final stats = snapshot.data!;
                 final text =
                     '총원 ${stats['total']}명 / 출석 ${stats['attended']}명\n(${(stats['rate'] as double).toStringAsFixed(1)}%)';
-                return Text(text,
-                    style: TextStyle(color: Colors.grey.shade300),
-                    textAlign: TextAlign.center);
+                return Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Expanded(
+                  child: Text(text,
+                      style: TextStyle(color: Colors.grey.shade300),
+                      textAlign: TextAlign.center),
+                ),
+                // ✨ 새로고침 버튼 추가
+                IconButton(
+                  icon: const Icon(Icons.refresh, size: 18, color: Colors.white70,),
+                  onPressed: () {
+                    // setState를 호출하여 FutureBuilder를 다시 실행하게 만듭니다.
+                    setState(() {});
+                  },
+                  tooltip: '출석 현황 새로고침',
+                  ),
+                ],
+              );
               },
             ),
           ),
