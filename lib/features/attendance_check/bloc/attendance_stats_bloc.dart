@@ -103,10 +103,16 @@ class AttendanceStatsBloc
                   : i + 30);
 
           if (chunk.isNotEmpty) {
+            // <<< 🚀 [수정] 쿼리 조건을 추가하여 현재 교회 소속 교인은 제외합니다. 🚀 >>>
+            // users 컬렉션에서 문서를 가져올 때,
+            // 1. 출석은 했지만 교인 명단에는 없는 사람(chunk) 중에서
+            // 2. 소속교회(church 필드)가 현재 통계를 보고 있는 교회(event.churchName)가 아닌 사람만 조회
             final nonMembersSnapshot = await _firestore
                 .collection('users')
                 .where(FieldPath.documentId, whereIn: chunk)
+                .where('church', isNotEqualTo: event.churchName) // <-- 이 조건 추가
                 .get();
+            // <<< 🚀 [수정] 여기까지 🚀 >>>
 
             // 가져온 비회원 정보를 임시 Member 객체로 만들어 기존 교인 맵에 추가합니다.
             for (var doc in nonMembersSnapshot.docs) {
