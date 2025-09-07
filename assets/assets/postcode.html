@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>주소검색</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+</head>
+<body style="height: 100vh; overflow: hidden; margin: 0;">
+  <script>
+    new daum.Postcode({
+      oncomplete: function(data) {
+        // --- ▼ [수정] 플러터와 웹 환경을 모두 지원하는 로직 ---
+        try {
+          // 1순위: Flutter 모바일 웹뷰의 'messageHandler'가 있는지 확인
+          if (window.messageHandler) {
+            window.messageHandler.postMessage(JSON.stringify(data));
+            return;
+          }
+
+          // 2순위: 웹 팝업 환경 (기존 코드 유지)
+          if (window.opener) {
+            window.opener.postMessage(JSON.stringify(data), '*');
+            window.close();
+            return;
+          }
+
+          // 3순위: IFrame 환경 등 기타 웹 환경 (기존 코드 유지)
+          if (window.top && window.top !== window) {
+            window.top.postMessage(JSON.stringify(data), '*');
+            return;
+          }
+        } catch (e) {
+          console.error('Failed to post message:', e);
+        }
+        // --- ▲ [수정] ---
+      },
+      width: '100%',
+      height: '100%',
+      maxSuggestItems: 5
+    }).embed(document.body);
+  </script>
+</body>
+</html>
