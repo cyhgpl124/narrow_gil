@@ -94,7 +94,7 @@ class _AttendanceStatsTable extends StatelessWidget {
                     color: Theme.of(context).scaffoldBackgroundColor,
                     padding: const EdgeInsets.all(8.0),
                     child: DataTable(
-                      headingRowColor: WidgetStateProperty.resolveWith<Color?>((states) => Colors.grey.shade800),
+                      headingRowColor: WidgetStateProperty.resolveWith<Color?>((states) => Theme.of(context).scaffoldBackgroundColor),
                       columnSpacing: 16.0,
                       horizontalMargin: 16.0,
                       columns: [

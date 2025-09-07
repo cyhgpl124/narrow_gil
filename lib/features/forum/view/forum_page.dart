@@ -307,6 +307,11 @@ class _ForumPageState extends State<ForumPage> {
     final previousMonth = DateTime(_selectedDate.year, _selectedDate.month - 1);
     final previousMonthString = DateFormat('yyyy-MM').format(previousMonth);
 
+    // <<< ✨ [추가] 현재 날짜와 선택된 날짜를 비교하여 다음 달 버튼 활성화 여부 결정
+    final now = DateTime.now();
+    final isCurrentMonthOrFuture = _selectedDate.year > now.year ||
+        (_selectedDate.year == now.year && _selectedDate.month >= now.month);
+
     return _isLoadingPosition
         ? const Scaffold(body: Center(child: CircularProgressIndicator()))
         : FutureBuilder<Map<String, List<ForumTopic>>>(
@@ -393,9 +398,10 @@ class _ForumPageState extends State<ForumPage> {
                       onPressed: _previousMonth,
                       tooltip: '이전 달',
                     ),
+                    // <<< ✨ [수정] isCurrentMonthOrFuture가 true이면 버튼을 비활성화 (onPressed: null)
                     IconButton(
                       icon: const Icon(Icons.chevron_right),
-                      onPressed: _nextMonth,
+                      onPressed: isCurrentMonthOrFuture ? null : _nextMonth,
                       tooltip: '다음 달',
                     ),
                   ],
