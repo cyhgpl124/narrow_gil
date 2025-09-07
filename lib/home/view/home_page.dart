@@ -24,7 +24,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:narrow_gil/home/view/widgets/notice_details_dialog.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'dart:ui'; // ✨ [추가] TextDirection 오류 해결을 위한 import
+import 'package:carousel_slider/carousel_slider.dart'; // CarouselSlider import
 
 
 // ✨ [추가] 교인 관리 페이지 import
@@ -54,13 +54,50 @@ class HomeView extends StatefulWidget {
 }
 
 class _HomeViewState extends State<HomeView> {
+
+  // ✨ [추가] 위젯의 렌더링 후 실제 높이를 측정하기 위한 GlobalKey
+  final GlobalKey _noticeSectionKey = GlobalKey();
+  final GlobalKey _phraseKey = GlobalKey();
   // ✨ 기존 변수들은 그대로 유지됩니다.
   AttendanceStatus _todayAttendanceStatus = AttendanceStatus.none;
+  double _gridHeight = 200.0; // 최소 높이로 초기화
+  final CarouselSliderController _carouselController = CarouselSliderController(); // ✨ [추가] 캐러셀 컨트롤러
 
   @override
   void initState() {
     super.initState();
-    _loadTodaysAttendance();
+    // initState에서 context를 사용해야 하므로, 첫 프레임이 그려진 후 실행되도록 함
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadTodaysAttendance();
+      _calculateGridHeight(); // ✨ 첫 프레임 렌더링 후 높이 계산
+    });
+  }
+
+    // ✨ [추가] 화면이 그려진 후, 위젯들의 실제 높이를 계산하는 함수
+  void _calculateGridHeight() {
+    if (!mounted) return;
+
+    final screenHeight = MediaQuery.of(context).size.height;
+    final appBarHeight = AppBar().preferredSize.height;
+    final statusBarHeight = MediaQuery.of(context).viewPadding.top;
+
+    double phraseHeight = 0;
+    final phraseContext = _phraseKey.currentContext;
+    if (phraseContext != null) {
+      phraseHeight = phraseContext.size!.height;
+    }
+
+    double noticeSectionHeight = 0;
+    final noticeContext = _noticeSectionKey.currentContext;
+    if (noticeContext != null) {
+      noticeSectionHeight = noticeContext.size!.height;
+    }
+
+    final availableHeight = screenHeight - appBarHeight - statusBarHeight - phraseHeight - noticeSectionHeight;
+
+    setState(() {
+      _gridHeight = availableHeight.clamp(200.0, double.infinity); // 최소 높이 200 보장
+    });
   }
 
   Future<void> _loadTodaysAttendance() async {
@@ -244,109 +281,139 @@ class _HomeViewState extends State<HomeView> {
     }
   }
 
-  // --- ▼ [수정] 공지사항 관련 위젯 및 함수 ---
+// --- ▼ [수정] 공지사항 섹션 전체를 CarouselSlider로 변경 ---
   Widget _buildNoticeSection(HomeLoadSuccess state) {
     final bool canEdit = state.userRole != '성민';
     final notices = state.notices;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (notices.isEmpty)
-          // 공지가 없을 때도 '+' 버튼을 표시하기 위한 로직
-          canEdit
-          ? Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text("등록된 공지가 없습니다."),
-                IconButton(
-                  icon: const Icon(Icons.add_circle_outline),
-                  onPressed: () => showAddEditNoticeDialog(context),
-                  tooltip: '새 공지 등록',
-                ),
-              ],
-            ),
-          )
-          : const Padding(
-            padding: EdgeInsets.symmetric(vertical: 24.0),
-            child: Center(child: Text("등록된 공지가 없습니다.")),
-          )
-        else
-          // ✨ [수정] asMap().entries.map을 사용하여 인덱스 접근
-          ...notices.asMap().entries.map((entry) {
-            int idx = entry.key;
-            Notice notice = entry.value;
-            return _buildNoticeItem(
-              context,
-              notice,
-              canEdit,
-              // ✨ [수G정] 첫 번째 아이템인지 여부와 공지 개수 제한을 전달
-              isFirst: idx == 0,
-              canAdd: notices.length < 3,
-            );
-          }),
-      ],
+    // 공지가 없으면 '새 공지 등록' 버튼만 표시 (편집 권한 있을 시)
+    if (notices.isEmpty) {
+      return Container(
+        height: 110, // 캐러셀과 비슷한 높이 유지
+        alignment: Alignment.center,
+        child: canEdit
+            ? TextButton.icon(
+                icon: const Icon(Icons.add_circle_outline),
+                label: const Text("새 공지 등록"),
+                onPressed: () => showAddEditNoticeDialog(context),
+              )
+            : const Text("등록된 공지가 없습니다."),
+      );
+    }
+
+    // D-Day가 가장 임박한 공지를 찾아 초기 페이지 인덱스 설정
+    int initialIndex = 0;
+    final noticesWithDueDate = notices.where((n) => n.dueDate != null).toList();
+    if (noticesWithDueDate.isNotEmpty) {
+      noticesWithDueDate.sort((a, b) => a.dueDate!.compareTo(b.dueDate!));
+      final mostImminentNotice = noticesWithDueDate.first;
+      initialIndex = notices.indexOf(mostImminentNotice);
+    }
+
+    return CarouselSlider.builder(
+      carouselController: _carouselController,
+      itemCount: notices.length,
+      itemBuilder: (context, index, realIndex) {
+        return _buildNoticeItem(context, notices[index], canEdit);
+      },
+      options: CarouselOptions(
+        height: 100, // ✨ 캐러셀 높이 조절
+        initialPage: initialIndex,
+        viewportFraction: 0.9,
+        enlargeCenterPage: true,
+        enableInfiniteScroll: notices.length > 1,
+      ),
     );
   }
 
-  Widget _buildNoticeItem(
-    BuildContext context,
-    Notice notice,
-    bool canEdit, {
-    required bool isFirst,
-    required bool canAdd,
-  }) {
+  Widget _buildNoticeItem(BuildContext context, Notice notice, bool canEdit) {
+    String dDayText = '';
+    Color dDayColor = Colors.green;
+
+    if (notice.dueDate != null) {
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      final dueDate = notice.dueDate!.toDate();
+      final difference = dueDate.difference(today).inDays;
+
+      if (difference == 0) {
+        dDayText = 'D-DAY';
+        dDayColor = Colors.redAccent;
+      } else if (difference < 7 && difference > 0) {
+        dDayText = 'D-$difference';
+        dDayColor = Colors.orangeAccent;
+      } else if (difference >= 7) {
+        dDayText = 'D-$difference';
+      }
+    }
+
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      margin: const EdgeInsets.symmetric(horizontal: 5, vertical: 4),
       child: Padding(
-        padding: const EdgeInsets.all(12.0),
+        padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Expanded(
-                  child: Text(
-                    notice.content,
-                    textAlign: TextAlign.center, // ✨ [수정] 텍스트 가운데 정렬
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+            // 공지 내용
+            Expanded(
+              child: Center(
+                child: Text(
+                  notice.content,
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
+              ),
+            ),
+            // 하단 정보 및 버튼
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                // D-Day 표시
+                if (notice.dueDate != null)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: dDayColor,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(dDayText,
+                        style: const TextStyle(
+                            color: Colors.white, fontWeight: FontWeight.bold)),
+                  ),
+                _buildDetailsRow(context, notice),
                 if (canEdit)
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // ✨ [수정] 첫 번째 아이템이고, 추가 가능할 때만 '+' 버튼 표시
-                      if (isFirst && canAdd)
-                        IconButton(
-                          icon: const Icon(Icons.add_circle_outline, size: 20),
-                          onPressed: () => showAddEditNoticeDialog(context),
-                          tooltip: '새 공지 등록',
-                        ),
+                      // ✨ [수정] 새 공지 등록 버튼 추가
+                      IconButton(
+                        icon: const Icon(Icons.add_circle_outline, size: 20),
+                        tooltip: '새 공지 등록',
+                        onPressed: () => showAddEditNoticeDialog(context),
+                      ),
                       IconButton(
                         icon: const Icon(Icons.edit, size: 20),
+                        tooltip: '공지 수정',
                         onPressed: () =>
                             showAddEditNoticeDialog(context, notice: notice),
                       ),
                       IconButton(
                         icon: const Icon(Icons.delete, size: 20),
+                        tooltip: '공지 삭제',
                         onPressed: () => _confirmDeleteNotice(context, notice),
                       ),
                     ],
                   ),
               ],
             ),
-            const SizedBox(height: 8),
-            _buildDetailsRow(context, notice),
           ],
         ),
       ),
     );
   }
+
+
 
 
   Widget _buildDetailsRow(BuildContext context, Notice notice) {
@@ -411,6 +478,10 @@ class _HomeViewState extends State<HomeView> {
     return BlocListener<HomeBloc, HomeState>(
       listener: (context, state) {
         if (state is HomeLoadSuccess) {
+          // 데이터 로드 성공 시 높이 재계산을 위해 setState 호출
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if(mounted) setState(() {});
+          });
           _loadTodaysAttendance();
         }
       },
@@ -457,24 +528,18 @@ class _HomeViewState extends State<HomeView> {
 
             // --- ▼ [추가] BentoGrid의 높이를 동적으로 계산 ---
             final screenWidth = MediaQuery.of(context).size.width;
-            const double horizontalGap = 0.005;
-            const double verticalGapRatio = 0.005; // 너비에 대한 비율로 계산
-            const int columnCount = 2;
-            const double totalHorizontalGap = horizontalGap * (columnCount + 1);
-
-            final itemWidthRelative = (1.0 - totalHorizontalGap) / columnCount;
-            final itemWidthPx = itemWidthRelative * screenWidth;
-            final itemHeightPx = itemWidthPx *0.12;
-
-            final int rowCount = (state.bentoItems.length / columnCount).ceil();
-            final verticalGapPx = verticalGapRatio * screenWidth;
-            final gridHeight = (rowCount * itemHeightPx) + ((rowCount + 1) * verticalGapPx);
-            // --- ▲ [추가] ---
+            final isMobileLayout = screenWidth < 800;
+             // ✨ [수정] 그리드의 높이를 동적으로 계산하는 로직
+            // 데이터가 변경될 때마다 높이를 다시 계산하도록 요청합니다.
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              _calculateGridHeight();
+            });
 
             return Scaffold(
               appBar: HomeAppBar(
                 userProfile: user,
                 isEditing: state.isEditing,
+                isMobileLayout: isMobileLayout,
                 onSignedOut: () =>
                     context.read<HomeBloc>().add(HomeSignedOut()),
                 onSave: () {
@@ -547,6 +612,7 @@ class _HomeViewState extends State<HomeView> {
                   children: [
                     if (user.phrases.isNotEmpty)
                       Container(
+                        key: _phraseKey,
                         width: double.infinity,
                         padding: const EdgeInsets.symmetric(
                             horizontal: 16, vertical: 12),
@@ -562,19 +628,20 @@ class _HomeViewState extends State<HomeView> {
                         ),
                       ),
 
-                    _buildNoticeSection(state),
-
-                    // --- ▼ [수정] Expanded를 SizedBox로 변경하고 계산된 높이 적용 ---
+                    Container(
+                      key: _noticeSectionKey, // ✨ 키 할당
+                      child: _buildNoticeSection(state),
+                    ),
                     SizedBox(
-                      height: gridHeight,
+                      height: _gridHeight, // ✨ 계산된 높이 적용
                       child: BentoGrid(
-                          items: state.bentoItems, isEditing: state.isEditing),
+                          items: state.bentoItems,
+                          isEditing: state.isEditing),
                     ),
                     // --- ▲ [수정] ---
                   ],
                 ),
               ),
-              // --- ▲ [수정] ---
             );
           }
           return const Scaffold(body: Center(child: Text('알 수 없는 상태')));

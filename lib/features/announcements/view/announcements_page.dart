@@ -8,6 +8,8 @@ import 'package:narrow_gil/features/announcements/services/announcement_service.
 import 'package:narrow_gil/features/announcements/view/announcement_detail_page.dart';
 import 'package:narrow_gil/features/announcements/view/widgets/upload_announcement_dialog.dart';
 import 'package:narrow_gil/home/bloc/home_bloc.dart';
+import 'package:flutter/foundation.dart' show kIsWeb; // ✨ [추가] 웹/모바일 구분을 위해 import
+
 
 // ✨ [수정] StatelessWidget -> StatefulWidget으로 변경
 class AnnouncementsPage extends StatefulWidget {
@@ -100,6 +102,10 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
   Widget build(BuildContext context) {
     final userProfile = (context.read<HomeBloc>().state as HomeLoadSuccess).userProfile;
 
+    // --- ▼ [핵심 수정] ---
+    // 모바일 환경인지 확인합니다. (kIsWeb이 false이면 모바일)
+    final bool isMobile = !kIsWeb && (Theme.of(context).platform == TargetPlatform.android || Theme.of(context).platform == TargetPlatform.iOS);
+    // --- ▲ [핵심 수정] ---
     return Scaffold(
       appBar: AppBar(
         title: const Text('공지사항'),
@@ -114,12 +120,15 @@ class _AnnouncementsPageState extends State<AnnouncementsPage> {
                       ? const Center(child: Text('등록된 공지사항이 없습니다.'))
                       : GridView.builder(
                           padding: const EdgeInsets.all(16.0),
-                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 4,
+                          // --- ▼ [핵심 수정] ---
+                          // isMobile 값에 따라 그리드 설정을 다르게 적용합니다.
+                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: isMobile ? 2 : 4, // 모바일이면 2열, 아니면 4열
                             crossAxisSpacing: 16.0,
                             mainAxisSpacing: 16.0,
-                            childAspectRatio: 0.7,
+                            childAspectRatio: isMobile ? 0.75 : 0.7, // 모바일에서 세로 비율을 약간 조정
                           ),
+                          // --- ▲ [핵심 수정] ---
                           itemCount: _announcements.length,
                           itemBuilder: (context, index) {
                             final announcement = _announcements[index];

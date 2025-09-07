@@ -64,12 +64,15 @@ dependencies:
   url_launcher: ^6.3.1
   carousel_slider: ^5.1.1
   csv: ^6.0.0
-  open_filex: ^4.7.0
+  # open_filex: ^4.7.0
   permission_handler: ^11.3.1
   universal_html: ^2.2.4
   image_picker: ^1.1.2
-  icons_plus: ^5.0.0             
+  icons_plus: ^5.0.0
   share_plus: ^10.0.0
+  flutter_launcher_icons: ^0.14.4
+  webview_flutter_plus: ^0.4.7
+  device_info_plus: ^10.1.2
 
 dev_dependencies:
   flutter_test:
@@ -106,7 +109,11 @@ dependency_overrides:
       url: https://github.com/SachinGanesh/screenshot.git
       ref: master
 
-
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  # 바로 이 부분에 내 이미지 파일의 경로를 정확하게 적어주세요!
+  image_path: "assets/icon/1024.png"
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware

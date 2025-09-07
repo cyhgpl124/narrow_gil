@@ -316,7 +316,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
 
       if (churchName == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('district 교회를 선택해주세요.')),
+          const SnackBar(content: Text('교회를 선택해주세요.')),
         );
         setState(() => _isLoading = false);
         return;
@@ -417,6 +417,16 @@ class _RegistrationPageState extends State<RegistrationPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        // <<< 🚀 추가된 부분 시작 🚀 >>>
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () async {
+            // 뒤로가기 버튼을 누르면 구글 로그인을 취소(로그아웃)합니다.
+            await FirebaseAuth.instance.signOut();
+            // AuthWrapper가 상태 변화를 감지하고 자동으로 LoginPage로 보내줍니다.
+          },
+        ),
+        // <<< 🚀 추가된 부분 끝 🚀 >>>
         title: const Text('추가 정보 입력'),
         automaticallyImplyLeading: false,
         backgroundColor: Colors.transparent,
@@ -444,7 +454,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
                 DropdownButtonFormField<String>(
                   value: _selectedChurch,
                   decoration: const InputDecoration(
-                    labelText: 'district 교회',
+                    labelText: '교회',
                     border: OutlineInputBorder(),
                   ),
                   hint: _isLoadingChurches

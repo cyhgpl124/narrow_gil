@@ -1,3 +1,22 @@
+// ✨ [추가] Kotlin 버전과 빌드 도구를 정의하는 buildscript 블록
+buildscript {
+    // 코틀린 버전을 최신 안정 버전으로 변경합니다.
+    ext.kotlin_version = '1.9.23'
+    repositories {
+        google()
+        mavenCentral()
+    }
+
+    dependencies {
+        // 안드로이드 그래들 플러그인 버전 (프로젝트에 맞게 조정될 수 있음)
+        classpath 'com.android.tools.build:gradle:7.3.0'
+        // Kotlin 그래들 플러그인
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+        // Firebase 서비스를 위한 Google Services 플러그인
+        classpath 'com.google.gms:google-services:4.4.1'
+    }
+}
+
 allprojects {
     repositories {
         google()

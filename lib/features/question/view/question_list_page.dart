@@ -102,6 +102,108 @@ class _QuestionListPageState extends State<QuestionListPage> {
     }
   }
 
+  // <<< 🚀 [추가] 좋아요/싫어요 실시간 반영을 위한 함수들 시작 🚀 >>>
+
+  /// 좋아요 버튼 토글 핸들러
+  void _toggleLike(String questionId, String userId) {
+    // 1. UI에 즉시 반영할 데이터의 복사본 생성
+    final int index = _questions.indexWhere((q) => q.id == questionId);
+    if (index == -1) return;
+
+    final QuestionModel oldQuestion = _questions[index];
+    final List<String> newLikes = List<String>.from(oldQuestion.likes);
+    final List<String> newDislikes = List<String>.from(oldQuestion.dislikes);
+    bool isLiked = newLikes.contains(userId);
+
+    if (isLiked) {
+      newLikes.remove(userId);
+    } else {
+      newLikes.add(userId);
+      newDislikes.remove(userId); // 싫어요 목록에서 제거
+    }
+
+    final QuestionModel newQuestion = QuestionModel(
+      id: oldQuestion.id,
+      title: oldQuestion.title,
+      content: oldQuestion.content,
+      background: oldQuestion.background,
+      authorId: oldQuestion.authorId,
+      authorName: oldQuestion.authorName,
+      createdAt: oldQuestion.createdAt,
+      isHidden: oldQuestion.isHidden,
+      likes: newLikes,
+      dislikes: newDislikes,
+      likesCount: newLikes.length, // 좋아요 수 업데이트
+    );
+
+    // 2. setState를 호출하여 화면을 즉시 갱신 (Optimistic Update)
+    setState(() {
+      _questions[index] = newQuestion;
+    });
+
+    // 3. 백그라운드에서 Firestore 데이터 업데이트 시도
+    _questionService.toggleLike(questionId, userId).catchError((error) {
+      // 4. 만약 오류가 발생하면 원래 상태로 롤백하고 사용자에게 알림
+      if(mounted) {
+        setState(() {
+          _questions[index] = oldQuestion;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('오류가 발생했습니다. 다시 시도해주세요.')),
+        );
+      }
+    });
+  }
+
+  /// 싫어요 버튼 토글 핸들러
+  void _toggleDislike(String questionId, String userId) {
+    final int index = _questions.indexWhere((q) => q.id == questionId);
+    if (index == -1) return;
+
+    final QuestionModel oldQuestion = _questions[index];
+    final List<String> newLikes = List<String>.from(oldQuestion.likes);
+    final List<String> newDislikes = List<String>.from(oldQuestion.dislikes);
+    bool isDisliked = newDislikes.contains(userId);
+
+    if (isDisliked) {
+      newDislikes.remove(userId);
+    } else {
+      newDislikes.add(userId);
+      newLikes.remove(userId); // 좋아요 목록에서 제거
+    }
+
+    final QuestionModel newQuestion = QuestionModel(
+        id: oldQuestion.id,
+        title: oldQuestion.title,
+        content: oldQuestion.content,
+        background: oldQuestion.background,
+        authorId: oldQuestion.authorId,
+        authorName: oldQuestion.authorName,
+        createdAt: oldQuestion.createdAt,
+        isHidden: newDislikes.length >= 10, // 싫어요 10개 이상이면 숨김 처리
+        likes: newLikes,
+        dislikes: newDislikes,
+        likesCount: newLikes.length);
+
+    setState(() {
+      _questions[index] = newQuestion;
+    });
+
+    _questionService.toggleDislike(questionId, userId).catchError((error) {
+       if(mounted) {
+        setState(() {
+          _questions[index] = oldQuestion;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('오류가 발생했습니다. 다시 시도해주세요.')),
+        );
+      }
+    });
+  }
+  // <<< 🚀 [추가] 좋아요/싫어요 실시간 반영을 위한 함수들 끝 🚀 >>>
+
+
+
   @override
   Widget build(BuildContext context) {
     final homeState = context.watch<HomeBloc>().state;
@@ -222,7 +324,8 @@ class _QuestionListPageState extends State<QuestionListPage> {
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   TextButton.icon(
-                    onPressed: () => _questionService.toggleLike(question.id, currentUserId),
+                    // <<< ✨ [수정] 새로 만든 핸들러 함수 호출
+                    onPressed: () => _toggleLike(question.id, currentUserId),
                     icon: Icon(
                       isLiked ? Icons.favorite : Icons.favorite_border,
                       color: isLiked ? Colors.red : Colors.grey,
@@ -233,17 +336,15 @@ class _QuestionListPageState extends State<QuestionListPage> {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  // --- ▼ [수정] 싫어요 버튼 로직 및 UI 수정 ▼ ---
-                  // IconButton을 사용하여 숫자 없이 아이콘만 표시
                   IconButton(
-                    onPressed: () => _questionService.toggleDislike(question.id, currentUserId),
+                    // <<< ✨ [수정] 새로 만든 핸들러 함수 호출
+                    onPressed: () => _toggleDislike(question.id, currentUserId),
                     icon: Icon(
                       isDisliked ? Icons.thumb_down : Icons.thumb_down_outlined,
                       color: isDisliked ? Colors.blue : Colors.grey,
                     ),
                     tooltip: '싫어요',
                   ),
-                  // --- ▲ [수정] 싫어요 버튼 로직 및 UI 수정 ▲ ---
                 ],
               )
             ],

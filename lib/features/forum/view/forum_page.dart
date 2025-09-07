@@ -11,11 +11,13 @@ import 'package:narrow_gil/home/bloc/home_bloc.dart';
 import 'package:narrow_gil/home/models/user_profile.dart';
 
 import 'package:excel/excel.dart';
-import 'package:open_filex/open_filex.dart';
+import 'package:open_file/open_file.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:screenshot/screenshot.dart';
 import 'package:universal_html/html.dart' as html;
+import 'package:device_info_plus/device_info_plus.dart'; // <-- 추가
+import 'package:permission_handler/permission_handler.dart'; // <-- 추가
 
 class ForumPage extends StatefulWidget {
   const ForumPage({super.key});
@@ -94,15 +96,35 @@ class _ForumPageState extends State<ForumPage> {
   }
 
   Future<bool> _requestPermission() async {
-    if (kIsWeb) {
-      return true;
-    }
-    var status = await Permission.storage.status;
-    if (!status.isGranted) {
+  // 웹 환경에서는 권한이 필요 없으므로 항상 true를 반환합니다.
+  if (kIsWeb) {
+    return true;
+  }
+
+  // iOS 플랫폼일 경우 사진첩 접근 권한을 요청합니다.
+  if (Platform.isIOS) {
+    final status = await Permission.photos.request();
+    return status.isGranted;
+  }
+
+  // Android 플랫폼일 경우 SDK 버전에 따라 다른 권한을 요청합니다.
+  if (Platform.isAndroid) {
+    final androidInfo = await DeviceInfoPlugin().androidInfo;
+    PermissionStatus status;
+
+    // Android 13 (API 33) 이상에서는 사진/동영상에 대한 개별 권한을 요청해야 합니다.
+    if (androidInfo.version.sdkInt >= 33) {
+      status = await Permission.photos.request();
+    } else {
+      // 그 이전 버전에서는 일반 저장소 권한을 요청합니다.
       status = await Permission.storage.request();
     }
     return status.isGranted;
   }
+
+  // 기타 다른 플랫폼에서는 일단 true를 반환합니다.
+  return true;
+}
 
   Future<void> _captureAndSaveImage() async {
     if (_isSaving) return;
@@ -138,7 +160,7 @@ class _ForumPageState extends State<ForumPage> {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text('이미지 저장 완료: $fileName'),
           action: SnackBarAction(
-              label: '열기', onPressed: () => OpenFilex.open(imagePath.path)),
+              label: '열기', onPressed: () => OpenFile.open(imagePath.path)),
         ));
       }
     } catch (e) {
@@ -260,7 +282,7 @@ class _ForumPageState extends State<ForumPage> {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text('엑셀 저장 완료: $fileName'),
           action: SnackBarAction(
-              label: '열기', onPressed: () => OpenFilex.open(filePath)),
+              label: '열기', onPressed: () => OpenFile.open(filePath)),
         ));
       }
     } catch (e) {

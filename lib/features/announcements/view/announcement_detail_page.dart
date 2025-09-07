@@ -154,9 +154,6 @@ class _AnnouncementDetailPageState extends State<AnnouncementDetailPage> {
                     Text(widget.announcement.title, style: Theme.of(context).textTheme.headlineSmall),
                     const SizedBox(height: 8),
                     Text('연락처: ${widget.announcement.contact}', style: Theme.of(context).textTheme.bodyLarge),
-                    const Divider(height: 40),
-                    Text("질문하기", style: Theme.of(context).textTheme.headlineSmall),
-                    // TODO: 질문 목록 및 질문 입력 폼을 여기에 구현합니다.
                   ],
                 ),
               ),

@@ -22,7 +22,17 @@ class HomePhraseSubmitted extends HomeEvent {
   List<Object> get props => [newPhrase];
 }
 // --- ▲ [추가] ---
+// ✨ [수정] 공지 저장 이벤트에 dueDate 필드를 추가합니다.
+class HomeNoticeSaved extends HomeEvent {
+  final String? id;
+  final String content;
+  final DateTime dueDate; // D-Day 날짜
 
+  const HomeNoticeSaved({this.id, required this.content, required this.dueDate});
+
+  @override
+  List<Object> get props => [id ?? '', content, dueDate ?? ''];
+}
 
 
 /// 관리자가 교회 정보를 수정하고 제출했을 때 발생하는 이벤트

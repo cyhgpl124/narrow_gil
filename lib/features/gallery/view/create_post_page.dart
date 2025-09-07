@@ -3,13 +3,10 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:dots_indicator/dots_indicator.dart';
+import 'package:narrow_gil/features/gallery/services/address_search_service.dart';
 import 'package:narrow_gil/features/gallery/services/post_service.dart';
 import 'package:narrow_gil/home/models/user_profile.dart';
 import 'package:carousel_slider/carousel_slider.dart'; // ✨ carousel_slider 패키지 import
-
-// ✨ [수정] 웹뷰 및 웹 팝업 통신을 위한 import
-import 'package:webview_flutter/webview_flutter.dart';
-import 'dart:html' as html;
 
 class CreatePostPage extends StatefulWidget {
   // ✨ 이 부분은 기존과 완전히 동일합니다.
@@ -30,26 +27,12 @@ class _CreatePostPageState extends State<CreatePostPage> {
   bool _isUploading = false;
   double _uploadProgress = 0.0;
   int _currentPageIndex = 0;
+  final _addressSearcher = AddressSearcher(); // ✨ AddressSearcher 인스턴스 생성
 
-  @override
+
+   @override
   void initState() {
     super.initState();
-
-    // ✨ [수정] 웹에서 카카오 주소 검색 팝업의 결과를 받기 위한 리스너
-    if (kIsWeb) {
-      html.window.addEventListener('message', (event) {
-        final data = (event as html.MessageEvent).data;
-        // 카카오 API는 data['address'] 형태로 값을 전달합니다.
-        if (data != null && data['address'] != null) {
-          if (mounted) {
-            setState(() {
-              _locationController.text = data['address'];
-            });
-          }
-        }
-      }, false);
-    }
-    // PageController 리스너는 CarouselSlider의 onPageChanged로 대체되므로 제거합니다.
   }
 
   @override
@@ -60,26 +43,18 @@ class _CreatePostPageState extends State<CreatePostPage> {
     super.dispose();
   }
 
-  /// ✨ [최종 수정] 안정적인 카카오 주소 검색 기능을 플랫폼에 맞게 구현
+    // ✨ 플랫폼에 상관없이 이 한 줄로 주소 검색을 호출합니다.
   Future<void> _searchAddress() async {
-   if (kIsWeb) {
-      // --- 웹(Web) 환경: 프로젝트에 추가한 postcode.html 파일을 팝업으로 엽니다. ---
-      html.window.open('assets/postcode.html', 'address-search-popup', 'width=600,height=700');
-      } else {
-      // --- 모바일(Android/iOS) 환경: webview_flutter를 사용한 방식 ---
-      await Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => AddressSearchWebView(
-            onAddressSelected: (String address) {
-              setState(() {
-                _locationController.text = address;
-              });
-            },
-          ),
-        ),
-      );
-    }
+    _addressSearcher.search(
+      context,
+      onAddressSelected: (String address) {
+        if (mounted) {
+          setState(() {
+            _locationController.text = address;
+          });
+        }
+      },
+    );
   }
 
   // ✨ _submitPost 함수는 사용자의 기존 코드를 그대로 유지합니다.
@@ -259,68 +234,6 @@ class _CreatePostPageState extends State<CreatePostPage> {
             ),
         ],
       ),
-    );
-  }
-}
-
-
-/// ✨ [추가] 모바일에서 카카오 주소 검색을 표시하기 위한 별도의 위젯
-class AddressSearchWebView extends StatefulWidget {
-  final Function(String address) onAddressSelected;
-  const AddressSearchWebView({super.key, required this.onAddressSelected});
-
-  @override
-  State<AddressSearchWebView> createState() => _AddressSearchWebViewState();
-}
-
-class _AddressSearchWebViewState extends State<AddressSearchWebView> {
-  late final WebViewController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-
-    _controller = WebViewController()
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      // 웹페이지의 `postMessage`를 Flutter에서 받기 위한 채널 설정
-      ..addJavaScriptChannel('messageHandler', onMessageReceived: (JavaScriptMessage message) {
-        widget.onAddressSelected(message.message);
-        Navigator.pop(context);
-      })
-      ..loadHtmlString(_getHtmlForAddressSearch());
-  }
-
-  String _getHtmlForAddressSearch() {
-    return '''
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>주소 검색</title>
-        <script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
-      </head>
-      <body style="height: 100vh; margin: 0; display: flex; align-items: center; justify-content: center;">
-        <script type="text/javascript">
-          new daum.Postcode({
-            oncomplete: function(data) {
-              // 'messageHandler' 채널을 통해 Flutter의 onMessageReceived로 데이터를 전달
-              window.messageHandler.postMessage(data.address);
-            },
-            width: '100%',
-            height: '100%'
-          }).embed(document.body);
-        </script>
-      </body>
-    </html>
-    ''';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('주소 검색')),
-      body: WebViewWidget(controller: _controller),
     );
   }
 }

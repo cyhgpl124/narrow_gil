@@ -19,7 +19,6 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
   final FirebaseFirestore _firestore;
   final GoogleSignIn _googleSignIn;
   final UserService _userService;
-  StreamSubscription? _noticesSubscription; // ✨ [추가] 공지 리스너
 
 
   HomeBloc({
@@ -52,65 +51,54 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     on<HomeLayoutResetRequested>(_onLayoutResetRequested);
     on<HomePhraseSubmitted>(_onPhraseSubmitted); // [추가] 새 이벤트 핸들러 등록
     on<HomeChurchInfoSubmitted>(_onChurchInfoSubmitted); // [추가]
-    on<HomeNoticesUpdated>(_onNoticesUpdated); // ✨ [추가]
-    on<HomeNoticeAdded>(_onNoticeAdded); // ✨ [추가]
-    on<HomeNoticeUpdated>(_onNoticeUpdated); // ✨ [추가]
+    on<HomeNoticeSaved>(_onNoticeSaved); // ✨ 수정된 이벤트 핸들러 등록
     on<HomeNoticeDeleted>(_onNoticeDeleted); // ✨ [추가]
 
 
   }
 
-   @override
-  Future<void> close() {
-    _noticesSubscription?.cancel(); // ✨ [추가] Bloc이 닫힐 때 리스너도 해제
-    return super.close();
-  }
+  // --- ▼ [수정] 공지사항 저장/삭제 후 데이터 새로고침 로직 추가 ---
 
-  // --- ▼ [추가] 공지사항 관련 이벤트 핸들러들 ---
-  void _onNoticesUpdated(HomeNoticesUpdated event, Emitter<HomeState> emit) {
-    if (state is HomeLoadSuccess) {
-      emit((state as HomeLoadSuccess).copyWith(notices: event.notices));
-    }
-  }
+  Future<void> _onNoticeSaved(
+      HomeNoticeSaved event, Emitter<HomeState> emit) async {
+    if (state is! HomeLoadSuccess) return;
+    final currentState = state as HomeLoadSuccess;
+    final userProfile = currentState.userProfile;
 
-  Future<void> _onNoticeAdded(
-      HomeNoticeAdded event, Emitter<HomeState> emit) async {
-    if (state is HomeLoadSuccess) {
-      final currentState = state as HomeLoadSuccess;
-      try {
-        await _userService.addNotice(currentState.userProfile.church,
-            event.content, currentState.userProfile.name);
-      } catch (e) {
-        // Handle error
+    final noticeData = {
+      'content': event.content,
+      'author': userProfile.name,
+      'authorId': userProfile.uid,
+      'createdAt': event.id == null ? Timestamp.now() : FieldValue.serverTimestamp(),
+      'dueDate': Timestamp.fromDate(event.dueDate),
+    };
+
+    try {
+      if (event.id == null) {
+        await _firestore.collection('churches').doc(userProfile.church).collection('notices').add(noticeData);
+      } else {
+        await _firestore.collection('churches').doc(userProfile.church).collection('notices').doc(event.id).update(noticeData);
       }
-    }
-  }
-
-  Future<void> _onNoticeUpdated(
-      HomeNoticeUpdated event, Emitter<HomeState> emit) async {
-    if (state is HomeLoadSuccess) {
-      final churchId = (state as HomeLoadSuccess).userProfile.church;
-      try {
-        await _userService.updateNotice(churchId, event.noticeId, event.content);
-      } catch (e) {
-        // Handle error
-      }
+      // ✨ [추가] 저장이 성공하면, 전체 데이터를 다시 불러오는 이벤트를 호출합니다.
+      add(HomeDataRequested());
+    } catch (e) {
+      print('Error saving notice: $e');
     }
   }
 
   Future<void> _onNoticeDeleted(
       HomeNoticeDeleted event, Emitter<HomeState> emit) async {
-    if (state is HomeLoadSuccess) {
-      final churchId = (state as HomeLoadSuccess).userProfile.church;
-      try {
-        await _userService.deleteNotice(churchId, event.noticeId);
-      } catch (e) {
-        // Handle error
-      }
+    if (state is! HomeLoadSuccess) return;
+    final churchId = (state as HomeLoadSuccess).userProfile.church;
+    try {
+      await _userService.deleteNotice(churchId, event.noticeId);
+      // ✨ [추가] 삭제가 성공하면, 전체 데이터를 다시 불러오는 이벤트를 호출합니다.
+      add(HomeDataRequested());
+    } catch (e) {
+      print('Error deleting notice: $e');
     }
   }
-  // --- ▲ [추가] ---
-
+  // --- ▲ [수정] ---
 
 // --- ▼ [추가] 교회 정보 업데이트 이벤트 핸들러 ---
   Future<void> _onChurchInfoSubmitted(
@@ -198,6 +186,20 @@ Future<void> _onDataRequested(
       final phoneNumber = userProfile.phoneNumber;
       final church = userProfile.church;
 
+      // --- ▼ [수정] 공지사항 쿼리 로직 변경 ---
+      // --- ▼ [수정] 공지사항 쿼리 로직 (D-Day 필수) ---
+      final noticesSnapshot = await _firestore
+          .collection('churches')
+          .doc(userProfile.church)
+          .collection('notices')
+          .where('dueDate', isGreaterThanOrEqualTo: Timestamp.now())
+          .orderBy('dueDate', descending: false)
+          .get();
+
+      final allNotices = noticesSnapshot.docs.map((doc) => Notice.fromFirestore(doc)).toList();
+      // --- ▲ [수정] ---
+      // --- ▲ [수정] ---
+
       // --- ▼ [수정] 교회 전체 정보를 가져옵니다 ---
       final churchInfo = await _userService.getChurchDetails(church);
       // --- ▲ [수정] ---
@@ -266,12 +268,10 @@ Future<void> _onDataRequested(
         bentoItems: finalLaidOutItems,
         originalBentoItems: List.from(finalLaidOutItems),
         isEditing: (state is HomeLoadSuccess) ? (state as HomeLoadSuccess).isEditing : false,
+        notices: allNotices, // ✨ 수정된 공지 목록으로 상태 업데이트
       ));
 
-      // ✨ [추가] 공지사항 실시간 리스닝 시작
-      _noticesSubscription?.cancel();
-      _noticesSubscription =
-          _userService.getNotices(userProfile.church).listen((notices) {
+        _userService.getNotices(userProfile.church).listen((notices) {
         add(HomeNoticesUpdated(notices));
         });
       // ✨ [추가]
