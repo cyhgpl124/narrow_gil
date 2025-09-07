@@ -33,7 +33,11 @@ jobs:
       - name: Build Flutter web
         run: flutter build web --release
 
-      # 5. 빌드된 결과물을 GitHub Pages에 배포합니다.
+      # 5. <<< 🚀 [추가] 이 단계를 추가하여 Jekyll을 비활성화합니다. 🚀 >>>
+      - name: Disable Jekyll
+        run: touch build/web/.nojekyll
+
+      # 6. 빌드된 결과물을 GitHub Pages에 배포합니다.
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
@@ -41,3 +45,4 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           # 빌드된 웹 파일이 있는 디렉토리를 지정합니다.
           publish_dir: ./build/web
+
