@@ -9,6 +9,8 @@ on:
 
 jobs:
   build-and-deploy:
+    permissions:
+      contents: write
     # 실행 환경을 최신 우분투로 설정합니다.
     runs-on: ubuntu-latest
 
