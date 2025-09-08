@@ -19,7 +19,8 @@ class AnnouncementDetailPage extends StatefulWidget {
 
 class _AnnouncementDetailPageState extends State<AnnouncementDetailPage> {
   // ✨ [1/4 추가] CarouselSlider를 제어하기 위한 컨트롤러
-  final CarouselSliderController _carouselController = CarouselSliderController();
+  final CarouselSliderController _carouselController =
+      CarouselSliderController();
   int _currentPage = 0;
 
   // ✨ [2/4 추가] 이미지를 전체 화면으로 확대해서 보여주는 함수
@@ -69,7 +70,10 @@ class _AnnouncementDetailPageState extends State<AnnouncementDetailPage> {
                                 imageUrls[index],
                                 fit: BoxFit.contain, // 이미지 비율 유지
                                 loadingBuilder: (context, child, progress) =>
-                                    progress == null ? child : const Center(child: CircularProgressIndicator()),
+                                    progress == null
+                                        ? child
+                                        : const Center(
+                                            child: CircularProgressIndicator()),
                                 errorBuilder: (context, error, stack) =>
                                     const Center(child: Icon(Icons.error)),
                               ),
@@ -97,7 +101,8 @@ class _AnnouncementDetailPageState extends State<AnnouncementDetailPage> {
                         child: Align(
                           alignment: Alignment.centerLeft,
                           child: IconButton(
-                            icon: const Icon(Icons.arrow_back_ios, color: Colors.black54),
+                            icon: const Icon(Icons.arrow_back_ios,
+                                color: Colors.black54),
                             onPressed: () => _carouselController.previousPage(),
                           ),
                         ),
@@ -107,7 +112,8 @@ class _AnnouncementDetailPageState extends State<AnnouncementDetailPage> {
                         child: Align(
                           alignment: Alignment.centerRight,
                           child: IconButton(
-                            icon: const Icon(Icons.arrow_forward_ios, color: Colors.black54),
+                            icon: const Icon(Icons.arrow_forward_ios,
+                                color: Colors.black54),
                             onPressed: () => _carouselController.nextPage(),
                           ),
                         ),
@@ -119,9 +125,9 @@ class _AnnouncementDetailPageState extends State<AnnouncementDetailPage> {
                       right: 30,
                       child: IconButton(
                         style: IconButton.styleFrom(
-                          backgroundColor: Colors.black.withOpacity(0.3)
-                        ),
-                        icon: const Icon(Icons.zoom_out_map, color: Colors.white),
+                            backgroundColor: Colors.black.withOpacity(0.3)),
+                        icon:
+                            const Icon(Icons.zoom_out_map, color: Colors.white),
                         onPressed: () => _zoomImage(imageUrls[_currentPage]),
                         tooltip: '확대보기',
                       ),
@@ -144,16 +150,18 @@ class _AnnouncementDetailPageState extends State<AnnouncementDetailPage> {
                   ),
                 ),
 
-              // ✨ 나머지 상세 정보 및 질문 파트는 기존과 동일
+              // ✨ 나머지 상세 정보 및 글 파트는 기존과 동일
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const SizedBox(height: 24),
-                    Text(widget.announcement.title, style: Theme.of(context).textTheme.headlineSmall),
+                    Text(widget.announcement.title,
+                        style: Theme.of(context).textTheme.headlineSmall),
                     const SizedBox(height: 8),
-                    Text('연락처: ${widget.announcement.contact}', style: Theme.of(context).textTheme.bodyLarge),
+                    Text('연락처: ${widget.announcement.contact}',
+                        style: Theme.of(context).textTheme.bodyLarge),
                   ],
                 ),
               ),

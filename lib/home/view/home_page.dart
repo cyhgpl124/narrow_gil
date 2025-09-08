@@ -26,7 +26,6 @@ import 'package:narrow_gil/home/view/widgets/notice_details_dialog.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:carousel_slider/carousel_slider.dart'; // CarouselSlider import
 
-
 // ✨ [추가] 교인 관리 페이지 import
 import 'package:narrow_gil/features/member_management/view/member_management_page.dart';
 
@@ -54,14 +53,14 @@ class HomeView extends StatefulWidget {
 }
 
 class _HomeViewState extends State<HomeView> {
-
   // ✨ [추가] 위젯의 렌더링 후 실제 높이를 측정하기 위한 GlobalKey
   final GlobalKey _noticeSectionKey = GlobalKey();
   final GlobalKey _phraseKey = GlobalKey();
   // ✨ 기존 변수들은 그대로 유지됩니다.
   AttendanceStatus _todayAttendanceStatus = AttendanceStatus.none;
   double _gridHeight = 200.0; // 최소 높이로 초기화
-  final CarouselSliderController _carouselController = CarouselSliderController(); // ✨ [추가] 캐러셀 컨트롤러
+  final CarouselSliderController _carouselController =
+      CarouselSliderController(); // ✨ [추가] 캐러셀 컨트롤러
 
   @override
   void initState() {
@@ -73,7 +72,7 @@ class _HomeViewState extends State<HomeView> {
     });
   }
 
-    // ✨ [추가] 화면이 그려진 후, 위젯들의 실제 높이를 계산하는 함수
+  // ✨ [추가] 화면이 그려진 후, 위젯들의 실제 높이를 계산하는 함수
   void _calculateGridHeight() {
     if (!mounted) return;
 
@@ -93,10 +92,15 @@ class _HomeViewState extends State<HomeView> {
       noticeSectionHeight = noticeContext.size!.height;
     }
 
-    final availableHeight = screenHeight - appBarHeight - statusBarHeight - phraseHeight - noticeSectionHeight;
+    final availableHeight = screenHeight -
+        appBarHeight -
+        statusBarHeight -
+        phraseHeight -
+        noticeSectionHeight;
 
     setState(() {
-      _gridHeight = availableHeight.clamp(200.0, double.infinity); // 최소 높이 200 보장
+      _gridHeight =
+          availableHeight.clamp(200.0, double.infinity); // 최소 높이 200 보장
     });
   }
 
@@ -372,7 +376,8 @@ class _HomeViewState extends State<HomeView> {
                 // D-Day 표시
                 if (notice.dueDate != null)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
                       color: dDayColor,
                       borderRadius: BorderRadius.circular(12),
@@ -413,16 +418,15 @@ class _HomeViewState extends State<HomeView> {
     );
   }
 
-
-
-
   Widget _buildDetailsRow(BuildContext context, Notice notice) {
     // ✨ [수정] TextPainter를 사용하기 위해 StatefulWidget으로 변경할 필요 없이,
     // LayoutBuilder를 사용하여 context와 제약조건을 가져옵니다.
     return LayoutBuilder(
       builder: (context, constraints) {
         final textPainter = TextPainter(
-          text: TextSpan(text: notice.content, style: Theme.of(context).textTheme.bodyMedium),
+          text: TextSpan(
+              text: notice.content,
+              style: Theme.of(context).textTheme.bodyMedium),
           maxLines: 2,
           textDirection: Directionality.of(context),
         )..layout(maxWidth: constraints.maxWidth);
@@ -446,7 +450,6 @@ class _HomeViewState extends State<HomeView> {
       },
     );
   }
-
 
   void _confirmDeleteNotice(BuildContext context, Notice notice) {
     showDialog(
@@ -472,7 +475,6 @@ class _HomeViewState extends State<HomeView> {
   }
   // --- ▲ [추가] ---
 
-
   @override
   Widget build(BuildContext context) {
     return BlocListener<HomeBloc, HomeState>(
@@ -480,7 +482,7 @@ class _HomeViewState extends State<HomeView> {
         if (state is HomeLoadSuccess) {
           // 데이터 로드 성공 시 높이 재계산을 위해 setState 호출
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            if(mounted) setState(() {});
+            if (mounted) setState(() {});
           });
           _loadTodaysAttendance();
         }
@@ -529,7 +531,7 @@ class _HomeViewState extends State<HomeView> {
             // --- ▼ [추가] BentoGrid의 높이를 동적으로 계산 ---
             final screenWidth = MediaQuery.of(context).size.width;
             final isMobileLayout = screenWidth < 800;
-             // ✨ [수정] 그리드의 높이를 동적으로 계산하는 로직
+            // ✨ [수정] 그리드의 높이를 동적으로 계산하는 로직
             // 데이터가 변경될 때마다 높이를 다시 계산하도록 요청합니다.
             WidgetsBinding.instance.addPostFrameCallback((_) {
               _calculateGridHeight();
@@ -607,7 +609,7 @@ class _HomeViewState extends State<HomeView> {
               // ✨ role이 있는 사용자에게만 Drawer를 표시합니다.
               drawer: HomeDrawer(userProfile: user),
 
-             body: SingleChildScrollView(
+              body: SingleChildScrollView(
                 child: Column(
                   children: [
                     if (user.phrases.isNotEmpty)
@@ -635,8 +637,7 @@ class _HomeViewState extends State<HomeView> {
                     SizedBox(
                       height: _gridHeight, // ✨ 계산된 높이 적용
                       child: BentoGrid(
-                          items: state.bentoItems,
-                          isEditing: state.isEditing),
+                          items: state.bentoItems, isEditing: state.isEditing),
                     ),
                     // --- ▲ [수정] ---
                   ],
@@ -730,7 +731,7 @@ class BentoItemCard extends StatelessWidget {
         page = const EventsListPage();
         break;
       case '/questions':
-        // TODO: 질문 페이지 생성 후 연결
+        // TODO: 글 페이지 생성 후 연결
         page = const QuestionListPage();
         break;
       // ✨ 교인 관리 페이지로 이동하는 case 추가

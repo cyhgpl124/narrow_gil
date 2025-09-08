@@ -123,10 +123,10 @@ class HomeDrawer extends StatelessWidget {
             title: const Text('행사'),
             onTap: () => _navigateToPage(context, const EventsListPage()),
           ),
-          // --- ▼ [추가] '질문' 메뉴 항목 ---
+          // --- ▼ [추가] '글' 메뉴 항목 ---
           ListTile(
             leading: const Icon(Icons.help_outline),
-            title: const Text('질문'),
+            title: const Text('글'),
             onTap: () => _navigateToPage(context, const QuestionListPage()),
           ),
           // --- ▲ [추가] ---
@@ -135,7 +135,8 @@ class HomeDrawer extends StatelessWidget {
             ListTile(
               leading: const Icon(Icons.manage_accounts_outlined),
               title: const Text('교인 관리'),
-              onTap: () => _navigateToPage(context, const MemberManagementPage()),
+              onTap: () =>
+                  _navigateToPage(context, const MemberManagementPage()),
             ),
           // --- ▲ [수정] ---
         ],

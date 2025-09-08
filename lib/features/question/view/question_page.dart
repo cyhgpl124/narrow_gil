@@ -7,7 +7,7 @@ class QuestionPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('질문'),
+        title: const Text('글'),
       ),
       body: Center(
         child: Column(
@@ -20,7 +20,7 @@ class QuestionPage extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              '질문 페이지',
+              '글 페이지',
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             const SizedBox(height: 8),

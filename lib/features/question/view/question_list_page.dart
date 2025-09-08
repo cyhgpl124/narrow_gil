@@ -36,7 +36,8 @@ class _QuestionListPageState extends State<QuestionListPage> {
 
     // 스크롤 리스너 추가
     _scrollController.addListener(() {
-      if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200 &&
+      if (_scrollController.position.pixels >=
+              _scrollController.position.maxScrollExtent - 200 &&
           !_isLoadingMore &&
           _hasMore) {
         _loadMoreQuestions();
@@ -72,8 +73,8 @@ class _QuestionListPageState extends State<QuestionListPage> {
         });
       }
     } catch (e) {
-      debugPrint("질문 로딩 실패: $e");
-      if(mounted) {
+      debugPrint("글 로딩 실패: $e");
+      if (mounted) {
         setState(() {
           _isLoading = false;
           // Firestore 오류 메시지 전체를 저장하여 화면에 표시
@@ -98,7 +99,7 @@ class _QuestionListPageState extends State<QuestionListPage> {
         });
       }
     } catch (e) {
-       if(mounted) setState(() => _isLoadingMore = false);
+      if (mounted) setState(() => _isLoadingMore = false);
     }
   }
 
@@ -144,7 +145,7 @@ class _QuestionListPageState extends State<QuestionListPage> {
     // 3. 백그라운드에서 Firestore 데이터 업데이트 시도
     _questionService.toggleLike(questionId, userId).catchError((error) {
       // 4. 만약 오류가 발생하면 원래 상태로 롤백하고 사용자에게 알림
-      if(mounted) {
+      if (mounted) {
         setState(() {
           _questions[index] = oldQuestion;
         });
@@ -190,7 +191,7 @@ class _QuestionListPageState extends State<QuestionListPage> {
     });
 
     _questionService.toggleDislike(questionId, userId).catchError((error) {
-       if(mounted) {
+      if (mounted) {
         setState(() {
           _questions[index] = oldQuestion;
         });
@@ -201,8 +202,6 @@ class _QuestionListPageState extends State<QuestionListPage> {
     });
   }
   // <<< 🚀 [추가] 좋아요/싫어요 실시간 반영을 위한 함수들 끝 🚀 >>>
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -217,7 +216,7 @@ class _QuestionListPageState extends State<QuestionListPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('신앙토론 질문'),
+        title: const Text('자유게시판'),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -238,31 +237,35 @@ class _QuestionListPageState extends State<QuestionListPage> {
                   if (question.isHidden && !isAdmin) {
                     return const SizedBox.shrink();
                   }
-                  return _buildQuestionCard(context, question, user.uid, isAdmin);
+                  return _buildQuestionCard(
+                      context, question, user.uid, isAdmin);
                 },
               ),
             ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
-          final result = await Navigator.push<bool>(context, MaterialPageRoute(
+          final result = await Navigator.push<bool>(
+            context,
+            MaterialPageRoute(
               builder: (_) => BlocProvider.value(
                 value: BlocProvider.of<HomeBloc>(context),
                 child: const AddQuestionPage(),
               ),
             ),
           );
-          // 새 질문 작성 후 목록을 새로고침합니다.
+          // 새 글 작성 후 목록을 새로고침합니다.
           if (result == true) {
             _loadInitialQuestions();
           }
         },
         child: const Icon(Icons.add),
-        tooltip: '질문하기',
+        tooltip: '글작성',
       ),
     );
   }
 
-  Widget _buildQuestionCard(BuildContext context, QuestionModel question, String currentUserId, bool isAdmin) {
+  Widget _buildQuestionCard(BuildContext context, QuestionModel question,
+      String currentUserId, bool isAdmin) {
     final bool isLiked = question.likes.contains(currentUserId);
     final bool isHiddenAndVisible = question.isHidden && isAdmin;
     // --- ▼ [추가] 현재 사용자가 싫어요를 눌렀는지 확인 ▼ ---
@@ -279,8 +282,10 @@ class _QuestionListPageState extends State<QuestionListPage> {
             context,
             MaterialPageRoute(
               builder: (_) => BlocProvider.value(
-                value: BlocProvider.of<HomeBloc>(context), // 현재 context의 HomeBloc을
-                child: QuestionDetailPage(questionId: question.id), // QuestionDetailPage로 전달
+                value:
+                    BlocProvider.of<HomeBloc>(context), // 현재 context의 HomeBloc을
+                child: QuestionDetailPage(
+                    questionId: question.id), // QuestionDetailPage로 전달
               ),
             ),
           );
@@ -296,12 +301,15 @@ class _QuestionListPageState extends State<QuestionListPage> {
                   padding: const EdgeInsets.only(bottom: 8.0),
                   child: Text(
                     '[숨김 처리됨]',
-                    style: TextStyle(color: Colors.red.shade700, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                        color: Colors.red.shade700,
+                        fontWeight: FontWeight.bold),
                   ),
                 ),
               Text(
                 question.title,
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                style:
+                    const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -314,7 +322,8 @@ class _QuestionListPageState extends State<QuestionListPage> {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    DateFormat('yyyy-MM-dd').format(question.createdAt.toDate()),
+                    DateFormat('yyyy-MM-dd')
+                        .format(question.createdAt.toDate()),
                     style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
                   ),
                 ],
@@ -332,7 +341,8 @@ class _QuestionListPageState extends State<QuestionListPage> {
                     ),
                     label: Text(
                       question.likes.length.toString(),
-                      style: TextStyle(color: isLiked ? Colors.red : Colors.grey),
+                      style:
+                          TextStyle(color: isLiked ? Colors.red : Colors.grey),
                     ),
                   ),
                   const SizedBox(width: 8),

@@ -28,13 +28,15 @@ class _QuestionDetailPageState extends State<QuestionDetailPage> {
     final homeState = context.read<HomeBloc>().state;
     if (homeState is HomeLoadSuccess) {
       final user = homeState.userProfile;
-      _questionService.addAnswer(
+      _questionService
+          .addAnswer(
         questionId: widget.questionId,
         content: _answerController.text.trim(),
         authorId: user.uid,
         authorName: user.name,
         church: user.church,
-      ).then((_) {
+      )
+          .then((_) {
         _answerController.clear();
         _scrollController.animateTo(
           _scrollController.position.maxScrollExtent,
@@ -49,8 +51,9 @@ class _QuestionDetailPageState extends State<QuestionDetailPage> {
     showDialog(
         context: context,
         builder: (context) => AlertDialog(
-              title: const Text('질문 삭제'),
-              content: const Text('정말로 이 질문과 모든 답변을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.'),
+              title: const Text('글 삭제'),
+              content:
+                  const Text('정말로 이 글과 모든 답변을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.'),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(),
@@ -63,7 +66,7 @@ class _QuestionDetailPageState extends State<QuestionDetailPage> {
                       Navigator.of(context).pop(); // 다이얼로그 닫기
                       Navigator.of(context).pop(); // 상세 페이지 닫기
                       ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('질문이 삭제되었습니다.')));
+                          const SnackBar(content: Text('글이 삭제되었습니다.')));
                     } catch (e) {
                       Navigator.of(context).pop();
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -100,26 +103,30 @@ class _QuestionDetailPageState extends State<QuestionDetailPage> {
       stream: _questionService.getQuestionStream(widget.questionId),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
-          return Scaffold(appBar: AppBar(), body: const Center(child: CircularProgressIndicator()));
+          return Scaffold(
+              appBar: AppBar(),
+              body: const Center(child: CircularProgressIndicator()));
         }
         final question = QuestionModel.fromFirestore(snapshot.data!);
 
         return Scaffold(
           appBar: AppBar(
-            title: const Text('질문 상세'),
-            // --- ▼ [추가] 질문 작성자 및 관리자에게만 수정/삭제 아이콘 표시 ▼ ---
+            title: const Text('글 상세'),
+            // --- ▼ [추가] 글 작성자 및 관리자에게만 수정/삭제 아이콘 표시 ▼ ---
             actions: [
               if (question.authorId == user.uid)
                 IconButton(
                   icon: const Icon(Icons.edit_outlined),
                   onPressed: () {
-                    Navigator.push(context, MaterialPageRoute(
-                      builder: (_) => BlocProvider.value(
-                        value: context.read<HomeBloc>(),
-                        // 질문 수정 시에는 기존 QuestionModel을 전달
-                        child: AddQuestionPage(questionToEdit: question),
-                      ),
-                    ));
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => BlocProvider.value(
+                            value: context.read<HomeBloc>(),
+                            // 글 수정 시에는 기존 QuestionModel을 전달
+                            child: AddQuestionPage(questionToEdit: question),
+                          ),
+                        ));
                   },
                   tooltip: '수정하기',
                 ),
@@ -130,7 +137,7 @@ class _QuestionDetailPageState extends State<QuestionDetailPage> {
                   tooltip: '삭제하기',
                 ),
             ],
-            // --- ▲ [추가] 질문 작성자 및 관리자에게만 수정/삭제 아이콘 표시 ▲ ---
+            // --- ▲ [추가] 글 작성자 및 관리자에게만 수정/삭제 아이콘 표시 ▲ ---
           ),
           body: Column(
             children: [
@@ -173,15 +180,16 @@ class _QuestionDetailPageState extends State<QuestionDetailPage> {
               ),
               const SizedBox(width: 8),
               Text(
-                DateFormat('yyyy-MM-dd HH:mm').format(question.createdAt.toDate()),
+                DateFormat('yyyy-MM-dd HH:mm')
+                    .format(question.createdAt.toDate()),
                 style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
               ),
             ],
           ),
           const Divider(height: 32),
           // 내용
-          _buildSection('질문 내용', question.content),
-          _buildSection('질문 배경', question.background),
+          _buildSection('글 내용', question.content),
+          _buildSection('글 배경', question.background),
           const Divider(height: 32),
         ],
       ),
@@ -194,7 +202,10 @@ class _QuestionDetailPageState extends State<QuestionDetailPage> {
       children: [
         Text(
           title,
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.blueAccent),
+          style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.blueAccent),
         ),
         const SizedBox(height: 8),
         Text(
@@ -218,7 +229,8 @@ class _QuestionDetailPageState extends State<QuestionDetailPage> {
         final answers = snapshot.data!;
         if (answers.isEmpty) {
           return const SliverToBoxAdapter(
-            child: Center(child: Padding(
+            child: Center(
+                child: Padding(
               padding: EdgeInsets.all(16.0),
               child: Text('아직 등록된 답변이 없습니다.'),
             )),
@@ -235,19 +247,23 @@ class _QuestionDetailPageState extends State<QuestionDetailPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(answer.content, style: const TextStyle(fontSize: 15)),
+                      Text(answer.content,
+                          style: const TextStyle(fontSize: 15)),
                       const SizedBox(height: 8),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
                           Text(
                             answer.authorName,
-                            style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                            style: TextStyle(
+                                color: Colors.grey.shade600, fontSize: 12),
                           ),
                           const SizedBox(width: 4),
-                           Text(
-                            DateFormat('MM-dd HH:mm').format(answer.createdAt.toDate()),
-                            style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                          Text(
+                            DateFormat('MM-dd HH:mm')
+                                .format(answer.createdAt.toDate()),
+                            style: TextStyle(
+                                color: Colors.grey.shade600, fontSize: 12),
                           ),
                         ],
                       ),
@@ -286,7 +302,8 @@ class _QuestionDetailPageState extends State<QuestionDetailPage> {
                     borderSide: BorderSide(color: Colors.grey.shade400),
                   ),
                   filled: true,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 ),
                 maxLines: 5,
                 minLines: 1,
@@ -309,4 +326,3 @@ class _QuestionDetailPageState extends State<QuestionDetailPage> {
     );
   }
 }
-

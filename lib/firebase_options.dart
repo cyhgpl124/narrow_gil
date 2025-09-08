@@ -64,6 +64,8 @@ class DefaultFirebaseOptions {
     messagingSenderId: '663647392487',
     projectId: 'narrow-gil',
     storageBucket: 'narrow-gil.firebasestorage.app',
+    androidClientId: '663647392487-ibfsin9gm0d373i6vgm16ctcif8i4mu3.apps.googleusercontent.com',
+    iosClientId: '663647392487-4ratv2qfkdphqobe5mqsvigjgt2kukfr.apps.googleusercontent.com',
     iosBundleId: 'com.example.narrowGil',
   );
 
@@ -73,6 +75,8 @@ class DefaultFirebaseOptions {
     messagingSenderId: '663647392487',
     projectId: 'narrow-gil',
     storageBucket: 'narrow-gil.firebasestorage.app',
+    androidClientId: '663647392487-ibfsin9gm0d373i6vgm16ctcif8i4mu3.apps.googleusercontent.com',
+    iosClientId: '663647392487-4ratv2qfkdphqobe5mqsvigjgt2kukfr.apps.googleusercontent.com',
     iosBundleId: 'com.example.narrowGil',
   );
 
@@ -85,4 +89,5 @@ class DefaultFirebaseOptions {
     storageBucket: 'narrow-gil.firebasestorage.app',
     measurementId: 'G-CYZBDWP7JF',
   );
+
 }

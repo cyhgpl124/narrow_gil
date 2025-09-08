@@ -36,7 +36,7 @@ jobs:
 
       # 5. Flutter 웹을 빌드합니다.
       - name: Build Flutter web
-        run: flutter build web --release
+        run: flutter build web --release --base-href /narrow_gil/
 
       # 6. Jekyll을 비활성화하여 index.html이 올바르게 표시되도록 합니다.
       - name: Disable Jekyll

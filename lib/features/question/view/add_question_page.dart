@@ -7,9 +7,9 @@ import 'package:narrow_gil/features/question/services/question_service.dart';
 import 'package:narrow_gil/home/bloc/home_bloc.dart';
 
 class AddQuestionPage extends StatefulWidget {
-  // --- ▼ [추가] 질문 수정을 위해 기존 질문 데이터를 전달받는 파라미터 ▼ ---
+  // --- ▼ [추가] 글 수정을 위해 기존 글 데이터를 전달받는 파라미터 ▼ ---
   final QuestionModel? questionToEdit;
-  // --- ▲ [추가] 질문 수정을 위해 기존 질문 데이터를 전달받는 파라미터 ▲ ---
+  // --- ▲ [추가] 글 수정을 위해 기존 글 데이터를 전달받는 파라미터 ▲ ---
 
   const AddQuestionPage({super.key, this.questionToEdit});
 
@@ -78,13 +78,15 @@ class _AddQuestionPageState extends State<AddQuestionPage> {
           }
 
           if (mounted) {
-            final message = _isEditing ? '질문이 수정되었습니다.' : '질문이 등록되었습니다.';
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+            final message = _isEditing ? '글이 수정되었습니다.' : '글이 등록되었습니다.';
+            ScaffoldMessenger.of(context)
+                .showSnackBar(SnackBar(content: Text(message)));
             Navigator.of(context).pop();
           }
         } catch (e) {
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('오류가 발생했습니다: $e')));
+            ScaffoldMessenger.of(context)
+                .showSnackBar(SnackBar(content: Text('오류가 발생했습니다: $e')));
           }
         } finally {
           if (mounted) {
@@ -99,12 +101,15 @@ class _AddQuestionPageState extends State<AddQuestionPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(_isEditing ? '질문 수정' : '질문 작성'),
+        title: Text(_isEditing ? '글 수정' : '글 작성'),
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 8.0),
             child: _isLoading
-                ? const Center(child: Padding(padding: EdgeInsets.all(8.0), child: CircularProgressIndicator()))
+                ? const Center(
+                    child: Padding(
+                        padding: EdgeInsets.all(8.0),
+                        child: CircularProgressIndicator()))
                 : TextButton(
                     onPressed: _submitQuestion,
                     child: Text(_isEditing ? '수정하기' : '등록하기'),
@@ -119,11 +124,22 @@ class _AddQuestionPageState extends State<AddQuestionPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _buildTextField(controller: _titleController, labelText: '질문 제목', hintText: '궁금한 점의 핵심을 제목으로 작성해주세요.'),
+              _buildTextField(
+                  controller: _titleController,
+                  labelText: '글 제목',
+                  hintText: '젬고을 입력해주세요.'),
               const SizedBox(height: 16),
-              _buildTextField(controller: _contentController, labelText: '질문 내용', hintText: '가장 궁금한 내용을 상세하게 작성해주세요.', maxLines: 5),
+              _buildTextField(
+                  controller: _contentController,
+                  labelText: '글 내용',
+                  hintText: '나누고 싶은 글을 상세하게 작성해주세요.',
+                  maxLines: 1000),
               const SizedBox(height: 16),
-              _buildTextField(controller: _backgroundController, labelText: '질문 배경', hintText: '이 질문을 하게 된 계기나 배경을 설명해주세요.', maxLines: 5),
+              _buildTextField(
+                  controller: _backgroundController,
+                  labelText: '글 배경',
+                  hintText: '이 글을 쓰게 된 계기나 배경을 설명해주세요.',
+                  maxLines: 1000),
             ],
           ),
         ),
@@ -131,6 +147,7 @@ class _AddQuestionPageState extends State<AddQuestionPage> {
     );
   }
 
+  // <<< ✨ [수정] 텍스트 필드 위젯 수정 ✨ >>>
   Widget _buildTextField({
     required TextEditingController controller,
     required String labelText,
@@ -146,13 +163,17 @@ class _AddQuestionPageState extends State<AddQuestionPage> {
         alignLabelWithHint: true,
       ),
       maxLines: maxLines,
+      // 1. 여러 줄 입력이 가능할 경우, 키보드 타입을 multiline으로 변경
+      keyboardType: maxLines > 1 ? TextInputType.multiline : TextInputType.text,
+      // 2. 여러 줄 입력이 가능할 경우, 엔터 키(action)를 줄바꿈(newline)으로 변경
+      textInputAction: maxLines > 1 ? TextInputAction.newline : TextInputAction.next,
       validator: (value) {
         if (value == null || value.trim().isEmpty) {
           return '$labelText 항목을 입력해주세요.';
         }
         return null;
       },
-      textInputAction: TextInputAction.next,
     );
   }
+  // <<< ✨ [수정] 여기까지 ✨ >>>
 }

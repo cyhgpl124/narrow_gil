@@ -18,6 +18,7 @@ class NewLifePage extends StatelessWidget {
 class NewLifeView extends StatelessWidget {
   const NewLifeView({super.key});
 
+  // 체크리스트 항목을 NewLifeView의 상수로 이동
   static const List<String> _checklistItems = [
     "5시기도", "8시기도", "12시기도", "21시기도", "가정예배", "성경읽기",
     "청소", "체조운동", "폐품활용", "신발정돈", "소금물양치", "손씻기",
@@ -46,7 +47,6 @@ class NewLifeView extends StatelessWidget {
                 onPreviousWeek: () => context.read<NewLifeBloc>().add(const NewLifeWeekChanged(isNextWeek: false)),
                 onNextWeek: () => context.read<NewLifeBloc>().add(const NewLifeWeekChanged(isNextWeek: true)),
               ),
-              // ✨ YearlyStatsCard에 현재 연도를 전달합니다.
               _YearlyStatsCard(
                 year: DateTime.now().year,
                 count: state.yearlyCheckedDaysCount
@@ -54,17 +54,12 @@ class NewLifeView extends StatelessWidget {
               if (state.status == NewLifeStatus.loading)
                 const LinearProgressIndicator(),
               Expanded(
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.vertical,
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: _NewLifeTable(
-                      weekStart: state.focusedWeekStart,
-                      checklistItems: _checklistItems,
-                      checkedItems: state.checkedItems,
-                      onItemToggled: (day, item) => context.read<NewLifeBloc>().add(NewLifeItemToggled(day, item)),
-                    ),
-                  ),
+                // SingleChildScrollView를 제거하고, _NewLifeTable이 자체적으로 스크롤을 처리하도록 변경
+                child: _NewLifeTable(
+                  weekStart: state.focusedWeekStart,
+                  checklistItems: _checklistItems,
+                  checkedItems: state.checkedItems,
+                  onItemToggled: (day, item) => context.read<NewLifeBloc>().add(NewLifeItemToggled(day, item)),
                 ),
               ),
             ],
@@ -92,7 +87,6 @@ class _YearlyStatsCard extends StatelessWidget {
           children: [
             const Icon(Icons.calendar_today, color: Colors.blueAccent),
             const SizedBox(width: 16),
-            // ✨ [수정] 텍스트를 '올해' 기준으로 변경하고, 연도를 표시합니다.
             Text(
               '$year년 실천한 날:',
               style: Theme.of(context).textTheme.titleMedium,
@@ -154,6 +148,12 @@ class _NewLifeTable extends StatelessWidget {
   final Map<DateTime, Map<String, bool>> checkedItems;
   final Function(DateTime, String) onItemToggled;
 
+  // UI 상수를 정의하여 일관성 유지
+  final double firstColumnWidth = 100.0;
+  final double dataColumnWidth = 60.0;
+  final double rowHeight = 48.0;
+  final double headerHeight = 56.0;
+
   const _NewLifeTable({
     required this.weekStart,
     required this.checklistItems,
@@ -163,36 +163,84 @@ class _NewLifeTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DataTable(
-      columns: [
-        const DataColumn(label: Text('')), // Empty column for checklist items
-        ...List.generate(
-          7,
-          (index) => DataColumn(
-            label: Text(
-              DateFormat('E\ndd', 'ko_KR').format(weekStart.add(Duration(days: index))),
-              textAlign: TextAlign.center,
+    // 전체 테이블을 담는 컨테이너
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        children: [
+          // 1. 고정된 첫 번째 열 (체크리스트 항목)
+          SizedBox(
+            width: firstColumnWidth,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 날짜 헤더와 높이를 맞추기 위한 빈 공간
+                SizedBox(height: headerHeight),
+                // 체크리스트 항목 목록
+                ...checklistItems.map((item) {
+                  return Container(
+                    height: rowHeight,
+                    alignment: Alignment.centerLeft,
+                    child: Text(item, overflow: TextOverflow.ellipsis),
+                  );
+                }).toList(),
+              ],
             ),
           ),
-        ),
-      ],
-      rows: checklistItems.map((item) {
-        return DataRow(
-          cells: [
-            DataCell(Text(item)),
-            ...List.generate(7, (dayIndex) {
-              final day = weekStart.add(Duration(days: dayIndex));
-              final isChecked = checkedItems[day]?[item] ?? false;
-              return DataCell(
-                _CheckButton(
-                  isChecked: isChecked,
-                  onTap: () => onItemToggled(day, item),
+          // 2. 가로로 스크롤되는 나머지 열 (날짜 및 체크 버튼)
+          Expanded(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: SizedBox(
+                // 전체 너비를 날짜 열의 개수에 맞게 설정
+                width: dataColumnWidth * 7,
+                child: Column(
+                  children: [
+                    // 날짜 헤더 행
+                    SizedBox(
+                      height: headerHeight,
+                      child: Row(
+                        children: List.generate(7, (index) {
+                          return SizedBox(
+                            width: dataColumnWidth,
+                            child: Center(
+                              child: Text(
+                                DateFormat('E\ndd', 'ko_KR').format(weekStart.add(Duration(days: index))),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          );
+                        }),
+                      ),
+                    ),
+                    // 체크 버튼 행들
+                    ...checklistItems.map((item) {
+                      return SizedBox(
+                        height: rowHeight,
+                        child: Row(
+                          children: List.generate(7, (dayIndex) {
+                            final day = weekStart.add(Duration(days: dayIndex));
+                            final isChecked = checkedItems[day]?[item] ?? false;
+                            return SizedBox(
+                              width: dataColumnWidth,
+                              child: Center(
+                                child: _CheckButton(
+                                  isChecked: isChecked,
+                                  onTap: () => onItemToggled(day, item),
+                                ),
+                              ),
+                            );
+                          }),
+                        ),
+                      );
+                    }).toList(),
+                  ],
                 ),
-              );
-            }),
-          ],
-        );
-      }).toList(),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -210,12 +258,13 @@ class _CheckButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
+      borderRadius: BorderRadius.circular(15), // InkWell 효과가 원형으로 보이도록
       child: Container(
         width: 30,
         height: 30,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: isChecked ? Colors.blue : Colors.grey.shade200,
+          color: isChecked ? Colors.blue : Colors.grey.shade300,
         ),
         child: Center(
           child: isChecked
