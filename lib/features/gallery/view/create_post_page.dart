@@ -212,7 +212,7 @@ class _CreatePostPageState extends State<CreatePostPage> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Text('업로드 중...', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      const Text('업로드 중...', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black)),
                       const SizedBox(height: 16),
                       SizedBox(
                         width: 200,
@@ -225,7 +225,7 @@ class _CreatePostPageState extends State<CreatePostPage> {
                       const SizedBox(height: 8),
                       Text(
                         '${(_uploadProgress * 100).toStringAsFixed(0)}%',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
+                        style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
                       ),
                     ],
                   ),

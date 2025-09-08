@@ -309,6 +309,24 @@ class _RegistrationPageState extends State<RegistrationPage> {
       final churchName = _selectedChurch;
       final firestore = FirebaseFirestore.instance;
 
+      // --- ▼ [추가] 전화번호 중복 확인 로직 ▼ ---
+      final existingUserQuery = await firestore
+          .collection('users')
+          .where('phoneNumber', isEqualTo: phoneNumber)
+          .limit(1)
+          .get();
+
+      if (existingUserQuery.docs.isNotEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('이미 가입된 번호입니다. 다른 번호를 입력해주세요.')),
+          );
+        }
+        setState(() => _isLoading = false);
+        return; // 중복된 번호이므로 가입 절차 중단
+      }
+      // --- ▲ [추가] 전화번호 중복 확인 로직 ▲ ---
+
       // 1. 현재 로그인된 사용자 정보를 가져옵니다.
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) {

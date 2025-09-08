@@ -126,7 +126,7 @@ class HomeDrawer extends StatelessWidget {
           // --- ▼ [추가] '글' 메뉴 항목 ---
           ListTile(
             leading: const Icon(Icons.help_outline),
-            title: const Text('글'),
+            title: const Text('자유게시판'),
             onTap: () => _navigateToPage(context, const QuestionListPage()),
           ),
           // --- ▲ [추가] ---

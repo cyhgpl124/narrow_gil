@@ -153,7 +153,7 @@ class BentoItem extends Equatable {
           height: 0),
       const BentoItem(
           id: 'questions',
-          title: '글',
+          title: '자유게시판',
           route: '/questions',
           x: 0,
           y: 0,
