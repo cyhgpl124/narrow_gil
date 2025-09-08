@@ -1,11 +1,11 @@
 {
-    "name": "narrow_gil",
-    "short_name": "narrow_gil",
+    "name": "좁은길 생명의길",
+    "short_name": "좁은길",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "하늘에 보물을 쌓는 여정",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
