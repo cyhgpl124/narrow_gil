@@ -2147,7 +2147,7 @@ const RESOURCES = {"canvaskit/skwasm.js": "1ef3ea3a0fec4569e5d531da25f34095",
 "assets/packages/icons_plus/assets/images/characters/marvel-characters/luke-cage.svg": "781ed122e13a4f068bfcece4a6a37c63",
 "assets/packages/icons_plus/assets/images/characters/marvel-characters/wolverine.svg": "9c689f6b83f5c0baa754dbd63593cd3b",
 "assets/postcode.html": "91b5ca1c63133fee7a9bf9d67f40a404",
-"flutter_bootstrap.js": "f70668f943eb789ce639b714d28613cc",
+"flutter_bootstrap.js": "a3af45afe9b9f217e0b6312d5c998590",
 "index.html": "389dc7dc3cf3d146ec2906ac887a8064",
 "/": "389dc7dc3cf3d146ec2906ac887a8064"};
 // The application shell files that are downloaded before a service worker can
