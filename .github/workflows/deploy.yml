@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. 저장소 코드를 체크아웃합니다.
+      # 1. 저장소 코드를 체크아웃합니다. (가장 먼저 실행되어야 합니다)
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -25,24 +25,28 @@ jobs:
         with:
           channel: 'stable'
 
-      # 3. Flutter 의존성을 설치합니다.
+      # 3. (선택사항) google-services.json 파일 생성
+      # GitHub Secrets에 저장해둔 Base64 문자열을 가져와서 디코딩합니다.
+      - name: Decode google-services.json
+        run: echo "${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}" | base64 --decode > android/app/google-services.json
+
+      # 4. Flutter 의존성을 설치합니다.
       - name: Install dependencies
         run: flutter pub get
 
-      # 4. Flutter 웹을 빌드합니다. (이전 단계에서 base-href를 설정했으므로 빌드 시에는 필요 없습니다)
+      # 5. Flutter 웹을 빌드합니다.
       - name: Build Flutter web
         run: flutter build web --release
 
-      # 5. <<< 🚀 [추가] 이 단계를 추가하여 Jekyll을 비활성화합니다. 🚀 >>>
+      # 6. Jekyll을 비활성화하여 index.html이 올바르게 표시되도록 합니다.
       - name: Disable Jekyll
         run: touch build/web/.nojekyll
 
-      # 6. 빌드된 결과물을 GitHub Pages에 배포합니다.
+      # 7. 빌드된 결과물을 GitHub Pages에 배포합니다.
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
-          # 배포에 필요한 GitHub 토큰입니다. 자동으로 생성되므로 수정할 필요 없습니다.
+          # 배포에 필요한 GitHub 토큰입니다.
           github_token: ${{ secrets.GITHUB_TOKEN }}
           # 빌드된 웹 파일이 있는 디렉토리를 지정합니다.
           publish_dir: ./build/web
-
