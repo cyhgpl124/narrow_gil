@@ -22,7 +22,7 @@ const RESOURCES = {"canvaskit/skwasm.js": "1ef3ea3a0fec4569e5d531da25f34095",
 "icons/Icon-maskable-512.png": "301a7604d45b3e739efc881eb04896ea",
 "icons/Icon-maskable-192.png": "c457ef57daa1d16f64b27b786ec2ea3c",
 "icons/Icon-512.png": "96e752610906ba2a93c65f8abe1645f1",
-"main.dart.js": "9e3863c32e3015d6d576c9ba5a4c28e0",
+"main.dart.js": "d6b7f67200ee2915eed5faacc88ec2eb",
 "version.json": "f2e151cf11d65339366655589dc62e0d",
 "assets/NOTICES": "3ca7ee13f6c318278beb1291d0ca5947",
 "assets/fonts/MaterialIcons-Regular.otf": "a938ed61decdafee04bb6f7ee2251fd8",
@@ -2147,9 +2147,9 @@ const RESOURCES = {"canvaskit/skwasm.js": "1ef3ea3a0fec4569e5d531da25f34095",
 "assets/packages/icons_plus/assets/images/characters/marvel-characters/luke-cage.svg": "781ed122e13a4f068bfcece4a6a37c63",
 "assets/packages/icons_plus/assets/images/characters/marvel-characters/wolverine.svg": "9c689f6b83f5c0baa754dbd63593cd3b",
 "assets/postcode.html": "91b5ca1c63133fee7a9bf9d67f40a404",
-"flutter_bootstrap.js": "a3af45afe9b9f217e0b6312d5c998590",
-"index.html": "389dc7dc3cf3d146ec2906ac887a8064",
-"/": "389dc7dc3cf3d146ec2906ac887a8064"};
+"flutter_bootstrap.js": "7be0403db3a36a3a89e18c282ed7f688",
+"index.html": "c3e8cf615da1a25a2e74ee998b8b88e6",
+"/": "c3e8cf615da1a25a2e74ee998b8b88e6"};
 // The application shell files that are downloaded before a service worker can
 // start.
 const CORE = ["main.dart.js",
