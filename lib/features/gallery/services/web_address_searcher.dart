@@ -1,52 +1,156 @@
-// lib/features/gallery/services/web_address_searcher.dart
-
-import 'dart:async';
-import 'dart:convert'; // JSON 파싱을 위해 import
-import 'dart:html' as html;
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 
+// AddressSearcher 클래스는 이제 _AddressSearchPage를 호출합니다.
 class AddressSearcher {
-  /// 웹 환경에서 주소 검색 팝업을 열고 결과를 처리합니다.
-  void search(BuildContext context, {required ValueChanged<String> onAddressSelected}) {
-    // 메시지 리스너가 중복으로 쌓이는 것을 방지하기 위해, 한 번만 수신하고 자동으로 해제되도록 합니다.
-    final StreamSubscription<html.MessageEvent> subscription =
-        html.window.onMessage.listen(null);
+  Future<void> search(BuildContext context,
+      {required ValueChanged<String> onAddressSelected}) async {
+    final String? result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const _AddressSearchPage()),
+    );
 
-    subscription.onData((event) {
-      try {
-        final data = event.data;
+    if (result != null) {
+      onAddressSelected(result);
+    }
+  }
+}
 
-        // 1. 전달받은 데이터(JSON 문자열)를 Map 객체로 변환합니다.
-        final decodedData = jsonDecode(data as String);
-        String address = '';
+// 카카오 API 검색 결과를 담을 모델
+class _KakaoAddress {
+  final String addressName;
+  final String roadAddressName;
+  final String buildingName;
 
-        // 2. 사용자가 선택한 주소 유형에 따라 주소를 할당합니다.
-        if (decodedData['userSelectedType'] == 'R') {
-          address = decodedData['roadAddress'] ?? '';
-        } else {
-          address = decodedData['jibunAddress'] ?? '';
-        }
+  _KakaoAddress({required this.addressName, required this.roadAddressName, required this.buildingName});
 
-        // 3. 건물 이름(buildingName)이 있다면 주소 뒤에 추가합니다.
-        final buildingName = decodedData['buildingName'];
-        if (buildingName != null && buildingName.isNotEmpty) {
-          address += ' ($buildingName)';
-        }
+  factory _KakaoAddress.fromJson(Map<String, dynamic> json) {
+    return _KakaoAddress(
+      addressName: json['address_name'] ?? '',
+      roadAddressName: json['road_address']?['address_name'] ?? '',
+      buildingName: json['road_address']?['building_name'] ?? '',
+    );
+  }
 
-        // 4. 최종 결과를 콜백 함수로 전달합니다.
-        if (address.isNotEmpty) {
-          onAddressSelected(address);
-        }
-      } catch (e) {
-        print('주소 데이터 파싱 중 에러 발생: $e');
-      } finally {
-        // 5. 메시지를 성공적으로 처리했으므로 리스너를 해제합니다.
-        subscription.cancel();
-      }
+  String get fullAddress {
+    String addr = roadAddressName.isNotEmpty ? roadAddressName : addressName;
+    if (buildingName.isNotEmpty) {
+      addr += ' ($buildingName)';
+    }
+    return addr;
+  }
+}
+
+// 주소 검색 UI와 API 호출 로직을 담은 위젯
+class _AddressSearchPage extends StatefulWidget {
+  const _AddressSearchPage();
+
+  @override
+  State<_AddressSearchPage> createState() => __AddressSearchPageState();
+}
+
+class __AddressSearchPageState extends State<_AddressSearchPage> {
+  final _controller = TextEditingController();
+  List<_KakaoAddress> _results = [];
+  bool _isLoading = false;
+  String _message = '검색어를 입력해주세요.';
+
+  // 🚨 중요: 이 API 키는 보안을 위해 서버나 환경 변수로 관리하는 것이 좋습니다.
+  final String _apiKey = 'ec425f8eaa0fe430be231d6b63f89db7';
+
+  Future<void> _searchAddress(String keyword) async {
+    if (keyword.length < 2) {
+      setState(() {
+        _results = [];
+        _message = '두 글자 이상 입력해주세요.';
+      });
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _message = '주소를 검색 중입니다...';
     });
 
-    // 카카오 주소 검색 HTML을 팝업으로 엽니다.
-    html.window.open(
-        'assets/postcode.html', 'address-search-popup', 'width=600,height=700');
+    final url = Uri.parse('https://dapi.kakao.com/v2/local/search/address.json?query=${Uri.encodeComponent(keyword)}');
+
+    try {
+      final response = await http.get(
+        url,
+        headers: {'Authorization': 'KakaoAK $_apiKey'},
+      );
+
+      if (response.statusCode == 200) {
+        // UTF-8로 디코딩하여 한글 깨짐 방지
+        final Map<String, dynamic> data = json.decode(utf8.decode(response.bodyBytes));
+        if (data['documents'] != null) {
+          final List<dynamic> docList = data['documents'];
+          setState(() {
+            _results = docList.map((e) => _KakaoAddress.fromJson(e)).toList();
+            _message = _results.isEmpty ? '검색 결과가 없습니다.' : '';
+          });
+        } else {
+           setState(() => _message = '검색 결과가 없습니다.');
+        }
+      } else {
+         final errorData = json.decode(utf8.decode(response.bodyBytes));
+         setState(() => _message = '주소 검색 실패: ${errorData['message']}');
+      }
+    } catch (e) {
+      setState(() => _message = '주소 검색 중 오류가 발생했습니다.');
+    } finally {
+      if(mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('주소 검색'),
+      ),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: TextField(
+              controller: _controller,
+              autofocus: true,
+              decoration: InputDecoration(
+                hintText: '도로명, 건물명, 지번으로 검색',
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.search),
+                  onPressed: () => _searchAddress(_controller.text),
+                ),
+              ),
+              onSubmitted: _searchAddress,
+            ),
+          ),
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _results.isEmpty
+                    ? Center(child: Text(_message))
+                    : ListView.separated(
+                        itemCount: _results.length,
+                        separatorBuilder: (context, index) => const Divider(),
+                        itemBuilder: (context, index) {
+                          final juso = _results[index];
+                          return ListTile(
+                            title: Text(juso.roadAddressName.isNotEmpty ? juso.roadAddressName : juso.addressName),
+                            subtitle: juso.roadAddressName.isNotEmpty ? Text('[지번] ${juso.addressName}') : null,
+                            onTap: () {
+                              Navigator.pop(context, juso.fullAddress);
+                            },
+                          );
+                        },
+                      ),
+          ),
+        ],
+      ),
+    );
   }
 }
