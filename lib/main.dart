@@ -5,7 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:narrow_gil/firebase_options.dart';
+// import 'package:narrow_gil/firebase_options.dart';
 import 'package:narrow_gil/home/models/user_profile.dart';
 import 'package:narrow_gil/home/view/home_page.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -14,9 +14,29 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('ko_KR', null);
   await dotenv.load(fileName: ".env");
+  // ⭐️⭐️⭐️ 이 부분이 수정됩니다 ⭐️⭐️⭐️
+  // 1. 빌드 시 주입된 환경 변수들을 읽어옵니다.
+  const apiKey = String.fromEnvironment('FIREBASE_API_KEY');
+  const appId = String.fromEnvironment('FIREBASE_APP_ID');
+  const messagingSenderId = String.fromEnvironment('FIREBASE_MESSAGING_SENDER_ID');
+  const projectId = String.fromEnvironment('FIREBASE_PROJECT_ID');
+  const authDomain = String.fromEnvironment('FIREBASE_AUTH_DOMAIN');
+  const storageBucket = String.fromEnvironment('FIREBASE_STORAGE_BUCKET');
+  const measurementId = String.fromEnvironment('FIREBASE_MAESUREMENT_ID');
+
+  // 2. 읽어온 변수들로 FirebaseOptions 객체를 직접 생성하여 초기화합니다.
   await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
+    options: const FirebaseOptions(
+      apiKey: apiKey,
+      appId: appId,
+      messagingSenderId: messagingSenderId,
+      projectId: projectId,
+      authDomain: authDomain,
+      storageBucket: storageBucket,
+      measurementId: measurementId,
+    ),
   );
+  // ⭐️⭐️⭐️ 여기까지 수정됩니다 ⭐️⭐️⭐️
   runApp(const MyApp());
 }
 
