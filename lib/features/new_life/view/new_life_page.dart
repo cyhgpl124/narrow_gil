@@ -54,12 +54,14 @@ class NewLifeView extends StatelessWidget {
               if (state.status == NewLifeStatus.loading)
                 const LinearProgressIndicator(),
               Expanded(
-                // SingleChildScrollView를 제거하고, _NewLifeTable이 자체적으로 스크롤을 처리하도록 변경
-                child: _NewLifeTable(
-                  weekStart: state.focusedWeekStart,
-                  checklistItems: _checklistItems,
-                  checkedItems: state.checkedItems,
-                  onItemToggled: (day, item) => context.read<NewLifeBloc>().add(NewLifeItemToggled(day, item)),
+                // SingleChildScrollView를 추가하여 테이블이 세로로 스크롤되도록 수정
+                child: SingleChildScrollView(
+                  child: _NewLifeTable(
+                    weekStart: state.focusedWeekStart,
+                    checklistItems: _checklistItems,
+                    checkedItems: state.checkedItems,
+                    onItemToggled: (day, item) => context.read<NewLifeBloc>().add(NewLifeItemToggled(day, item)),
+                  ),
                 ),
               ),
             ],
