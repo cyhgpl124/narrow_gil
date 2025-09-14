@@ -474,11 +474,12 @@ class _ForumPageState extends State<ForumPage> {
         topic.id.split('_').last: topic.nextMonthPlan
     };
 
-    // 테이블 위젯 생성
+    // --- ▼ [수정] Table 위젯을 생성하는 내부 함수 ---
     Widget buildTable(Map<int, TableColumnWidth> columnWidths) {
       return Table(
         border: TableBorder.all(color: Colors.grey.shade800, width: 1.5),
         columnWidths: columnWidths,
+        defaultVerticalAlignment: TableCellVerticalAlignment.middle,
         children: [
           if (showHeader)
             TableRow(
@@ -514,29 +515,35 @@ class _ForumPageState extends State<ForumPage> {
         ],
       );
     }
+    // --- ▲ [수정] Table 위젯을 생성하는 내부 함수 ---
 
     return Card(
       color: Colors.grey[900],
       elevation: 4,
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      // kIsWeb을 사용하여 웹/모바일 환경 분기
       child: kIsWeb
-          ? buildTable(const { // 웹 환경: FlexColumnWidth 사용
+          ? buildTable(const {
               0: IntrinsicColumnWidth(flex: 1.5),
               1: FlexColumnWidth(2.5),
               2: FlexColumnWidth(3),
               3: FlexColumnWidth(3),
             })
-          : SingleChildScrollView( // 모바일 환경: SingleChildScrollView + FixedColumnWidth 사용
+          // --- ▼ [수정] 모바일 환경 레이아웃 ---
+          : SingleChildScrollView(
               scrollDirection: Axis.horizontal,
-              child: buildTable(const {
-                0: IntrinsicColumnWidth(), // 첫 열은 내용에 맞게
-                1: FixedColumnWidth(250.0), // 나머지 열은 250px 고정
-                2: FixedColumnWidth(250.0),
-                3: FixedColumnWidth(250.0),
-              }),
+              // SizedBox를 추가하여 Table의 최소 너비를 강제
+              child: SizedBox(
+                width: 850, // (100 + 250 + 250 + 250)
+                child: buildTable(const {
+                  0: FixedColumnWidth(100.0), // 첫 열도 고정 너비로 변경
+                  1: FixedColumnWidth(250.0),
+                  2: FixedColumnWidth(250.0),
+                  3: FixedColumnWidth(250.0),
+                }),
+              ),
             ),
+          // --- ▲ [수정] 모바일 환경 레이아웃 ---
     );
   }
 
@@ -547,11 +554,12 @@ class _ForumPageState extends State<ForumPage> {
         _userPositions.any((pos) => topic.responsiblePosition.contains(pos));
     final bool isEditable = isDeveloper || isResponsible;
 
-    // 테이블 위젯 생성
+    // --- ▼ [수정] Table 위젯을 생성하는 내부 함수 ---
     Widget buildTable(Map<int, TableColumnWidth> columnWidths) {
       return Table(
         border: TableBorder.all(color: Colors.grey.shade800, width: 1.5),
         columnWidths: columnWidths,
+        defaultVerticalAlignment: TableCellVerticalAlignment.middle,
         children: [
           TableRow(
             decoration: BoxDecoration(color: Colors.grey[800]),
@@ -566,29 +574,34 @@ class _ForumPageState extends State<ForumPage> {
         ],
       );
     }
+    // --- ▲ [수정] Table 위젯을 생성하는 내부 함수 ---
 
     return Card(
       color: Colors.grey[900],
       elevation: 4,
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      // kIsWeb을 사용하여 웹/모바일 환경 분기
       child: kIsWeb
-          ? buildTable(const { // 웹 환경
+          ? buildTable(const {
               0: IntrinsicColumnWidth(flex: 1.5),
               1: FlexColumnWidth(3),
               2: FlexColumnWidth(3),
               3: FlexColumnWidth(3),
             })
-          : SingleChildScrollView( // 모바일 환경
+          // --- ▼ [수정] 모바일 환경 레이아웃 ---
+          : SingleChildScrollView(
               scrollDirection: Axis.horizontal,
-              child: buildTable(const {
-                0: IntrinsicColumnWidth(),
-                1: FixedColumnWidth(250.0),
-                2: FixedColumnWidth(250.0),
-                3: FixedColumnWidth(250.0),
-              }),
+              child: SizedBox(
+                width: 850, // (100 + 250 + 250 + 250)
+                child: buildTable(const {
+                  0: FixedColumnWidth(100.0),
+                  1: FixedColumnWidth(250.0),
+                  2: FixedColumnWidth(250.0),
+                  3: FixedColumnWidth(250.0),
+                }),
+              ),
             ),
+         // --- ▲ [수정] 모바일 환경 레이아웃 ---
     );
   }
 
