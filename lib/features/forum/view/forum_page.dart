@@ -412,6 +412,8 @@ class _ForumPageState extends State<ForumPage> {
           );
   }
 
+  // forum_page.dart 파일에서 아래 코드로 교체할 부분 시작
+
   Widget _buildForumContent(
     BuildContext context,
     List<ForumTopic> currentTopics,
@@ -444,7 +446,10 @@ class _ForumPageState extends State<ForumPage> {
             lastEditor: '',
             lastEditedAt: Timestamp.now()));
 
-    return Column(
+    // Column 대신 ListView를 사용하여 렌더링 유연성을 확보합니다.
+    return ListView(
+      shrinkWrap: true, // 내용만큼만 높이를 차지하도록 설정
+      physics: const NeverScrollableScrollPhysics(), // 부모 스크롤을 사용하므로 자체 스크롤은 비활성화
       children: [
         _buildForumTable(context, defaultTopics, previousTopics, userProfile,
             previousMonthString),
@@ -474,76 +479,44 @@ class _ForumPageState extends State<ForumPage> {
         topic.id.split('_').last: topic.nextMonthPlan
     };
 
-    // --- ▼▼▼▼▼ [오류 원인] 이 부분이 빠졌었습니다! ▼▼▼▼▼ ---
-    // 웹/모바일에서 공통으로 사용할 TableRow 리스트를 미리 생성합니다.
-    List<TableRow> tableRows = [
-      if (showHeader)
-        TableRow(
-          decoration: BoxDecoration(color: Colors.grey[800]),
-          children: [
-            _buildHeaderCell('구분'),
-            _buildHeaderCell('이전달계획'),
-            _buildHeaderCell('이번달실행'),
-            _buildHeaderCell('다음달계획'),
-          ],
-        ),
-      ...topics.map((topic) {
-        final bool isDeveloper = _userPositions.contains('개발자');
-        final bool isResponsible =
-            _userPositions.any((userPos) => topic.responsiblePosition.contains(userPos));
-        final bool isEditable = isDeveloper || isResponsible;
-        final topicKey = topic.id.split('_').last;
+    List<DataRow> rows = topics.map((topic) {
+      final bool isDeveloper = _userPositions.contains('개발자');
+      final bool isResponsible =
+          _userPositions.any((userPos) => topic.responsiblePosition.contains(userPos));
+      final bool isEditable = isDeveloper || isResponsible;
+      final topicKey = topic.id.split('_').last;
 
-        bool isSecretaryTopic = topicKey == '서기';
-        bool isAccountingTopic = topicKey == '회계' || topicKey == '기금';
-
-        if (isSecretaryTopic) {
-          return _buildSecretaryRow(
-              context, topic, userProfile, previousMonthString, isEditable);
-        } else if (isAccountingTopic) {
-          return _buildAccountingRow(context, topic, userProfile, isEditable);
-        } else {
-          return _buildDefaultRow(context, topic, userProfile,
-              previousPlansMap[topicKey] ?? '', isEditable);
-        }
-      }).toList(),
-    ];
-    // --- ▲▲▲▲▲ 여기까지가 `tableRows`를 정의하는 부분입니다. ▲▲▲▲▲ ---
+      if (topicKey == '서기') {
+        return _buildSecretaryRow(
+            context, topic, userProfile, previousMonthString, isEditable);
+      } else if (topicKey == '회계' || topicKey == '기금') {
+        return _buildAccountingRow(context, topic, userProfile, isEditable);
+      } else {
+        return _buildDefaultRow(context, topic, userProfile,
+            previousPlansMap[topicKey] ?? '', isEditable);
+      }
+    }).toList();
 
     return Card(
       color: Colors.grey[900],
       elevation: 4,
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: kIsWeb
-          // --- [웹 환경] ---
-          ? Table(
-              columnWidths: const {
-                0: IntrinsicColumnWidth(flex: 1.5),
-                1: FlexColumnWidth(2.5),
-                2: FlexColumnWidth(3),
-                3: FlexColumnWidth(3),
-              },
-              border: TableBorder.all(color: Colors.grey.shade800, width: 1.5),
-              children: tableRows, // 이제 정상적으로 `tableRows`를 사용할 수 있습니다.
-            )
-          // --- [모바일 환경] ---
-          : SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: SizedBox(
-                width: 850,
-                child: Table(
-                  columnWidths: const {
-                    0: FixedColumnWidth(100.0),
-                    1: FixedColumnWidth(250.0),
-                    2: FixedColumnWidth(250.0),
-                    3: FixedColumnWidth(250.0),
-                  },
-                  border: TableBorder.all(color: Colors.grey.shade800, width: 1.5),
-                  children: tableRows, // 여기서도 동일하게 사용합니다.
-                ),
-              ),
-            ),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: DataTable(
+          headingRowColor: MaterialStateProperty.all(Colors.grey[800]),
+          columnSpacing: 0,
+          dataRowMinHeight: 60, // 행의 최소 높이 지정
+          columns: !showHeader ? [] : [
+            _buildHeaderColumn('구분', width: 100),
+            _buildHeaderColumn('이전달계획', width: 250),
+            _buildHeaderColumn('이번달실행', width: 250),
+            _buildHeaderColumn('다음달계획', width: 250),
+          ],
+          rows: rows,
+        ),
+      ),
     );
   }
 
@@ -554,96 +527,63 @@ class _ForumPageState extends State<ForumPage> {
         _userPositions.any((pos) => topic.responsiblePosition.contains(pos));
     final bool isEditable = isDeveloper || isResponsible;
 
-    // --- ▼ 웹/모바일에서 공통으로 사용할 TableRow 리스트를 생성합니다. ▼ ---
-    List<TableRow> tableRows = [
-      TableRow(
-        decoration: BoxDecoration(color: Colors.grey[800]),
-        children: [
-          _buildHeaderCell('구분'),
-          _buildHeaderCell('안건내용'),
-          _buildHeaderCell('토의결과'),
-          _buildHeaderCell('실행내역'),
-        ],
-      ),
-      _buildAgendaRow(context, topic, userProfile, isEditable),
-    ];
-    // --- ▲ `tableRows` 정의 끝 ▲ ---
-
     return Card(
       color: Colors.grey[900],
       elevation: 4,
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: kIsWeb
-          // --- [웹 환경] ---
-          ? Table(
-              columnWidths: const {
-                0: IntrinsicColumnWidth(flex: 1.5),
-                1: FlexColumnWidth(3),
-                2: FlexColumnWidth(3),
-                3: FlexColumnWidth(3),
-              },
-              border: TableBorder.all(color: Colors.grey.shade800, width: 1.5),
-              children: tableRows, // `tableRows` 변수 사용
-            )
-          // --- [모바일 환경] ---
-          : SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: SizedBox(
-                width: 850,
-                child: Table(
-                  columnWidths: const {
-                    0: FixedColumnWidth(100.0),
-                    1: FixedColumnWidth(250.0),
-                    2: FixedColumnWidth(250.0),
-                    3: FixedColumnWidth(250.0),
-                  },
-                  border: TableBorder.all(color: Colors.grey.shade800, width: 1.5),
-                  children: tableRows, // `tableRows` 변수 사용
-                ),
-              ),
-            ),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: DataTable(
+          headingRowColor: MaterialStateProperty.all(Colors.grey[800]),
+          columnSpacing: 0,
+          dataRowMinHeight: 60,
+          columns: [
+            _buildHeaderColumn('구분', width: 100),
+            _buildHeaderColumn('안건내용', width: 250),
+            _buildHeaderColumn('토의결과', width: 250),
+            _buildHeaderColumn('실행내역', width: 250),
+          ],
+          rows: [_buildAgendaRow(context, topic, userProfile, isEditable)],
+        ),
+      ),
     );
   }
 
+  // --- ▼ DataRow 빌더 함수들 ▼ ---
 
-  TableRow _buildAgendaRow(BuildContext context, ForumTopic topic,
+  DataRow _buildAgendaRow(BuildContext context, ForumTopic topic,
       UserProfile userProfile, bool isEditable) {
-    return TableRow(
-      children: [
-        _buildTitleCell(topic.title),
-        _buildEditableCell(context, topic.agendaContent, isEditable,
-            () => _showEditDialog(context, topic, userProfile)),
-        _buildEditableCell(context, topic.discussionResult, isEditable,
-            () => _showEditDialog(context, topic, userProfile)),
-        _buildEditableCell(context, topic.actionLog, isEditable,
-            () => _showEditDialog(context, topic, userProfile)),
-      ],
-    );
+    return DataRow(cells: [
+      _buildTitleCell(topic.title, width: 100),
+      _buildEditableCell(context, topic.agendaContent, isEditable,
+          () => _showEditDialog(context, topic, userProfile), width: 250),
+      _buildEditableCell(context, topic.discussionResult, isEditable,
+          () => _showEditDialog(context, topic, userProfile), width: 250),
+      _buildEditableCell(context, topic.actionLog, isEditable,
+          () => _showEditDialog(context, topic, userProfile), width: 250),
+    ]);
   }
 
-  TableRow _buildDefaultRow(BuildContext context, ForumTopic topic,
+  DataRow _buildDefaultRow(BuildContext context, ForumTopic topic,
       UserProfile userProfile, String previousPlan, bool isEditable) {
-    return TableRow(
-      decoration: BoxDecoration(color: Colors.grey[900]),
-      children: [
-        _buildTitleCell(topic.title),
-        _buildContentCell(previousPlan),
-        _buildEditableCell(context, topic.thisMonthExecution, isEditable,
-            () => _showEditDialog(context, topic, userProfile)),
-        _buildEditableCell(context, topic.nextMonthPlan, isEditable,
-            () => _showEditDialog(context, topic, userProfile)),
-      ],
-    );
+    return DataRow(cells: [
+      _buildTitleCell(topic.title, width: 100),
+      _buildContentCell(previousPlan, width: 250),
+      _buildEditableCell(context, topic.thisMonthExecution, isEditable,
+          () => _showEditDialog(context, topic, userProfile), width: 250),
+      _buildEditableCell(context, topic.nextMonthPlan, isEditable,
+          () => _showEditDialog(context, topic, userProfile), width: 250),
+    ]);
   }
 
-  TableRow _buildSecretaryRow(BuildContext context, ForumTopic topic,
+  DataRow _buildSecretaryRow(BuildContext context, ForumTopic topic,
       UserProfile userProfile, String previousMonthString, bool isEditable) {
-    return TableRow(
-      children: [
-        _buildTitleCell(topic.title),
-        TableCell(
-          verticalAlignment: TableCellVerticalAlignment.middle,
+    return DataRow(cells: [
+      _buildTitleCell(topic.title, width: 100),
+      DataCell(
+        SizedBox(
+          width: 250,
           child: Padding(
             padding: const EdgeInsets.all(12.0),
             child: FutureBuilder<Map<String, dynamic>>(
@@ -651,86 +591,169 @@ class _ForumPageState extends State<ForumPage> {
                   userProfile.church, previousMonthString),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(
-                      child: SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2)));
+                  return const Center(child: CircularProgressIndicator(strokeWidth: 2));
                 }
                 if (!snapshot.hasData || snapshot.hasError) {
-                  return const Text('출석정보 없음',
-                      style: TextStyle(color: Colors.orangeAccent));
+                  return const Text('출석정보 없음', style: TextStyle(color: Colors.orangeAccent));
                 }
                 final stats = snapshot.data!;
-                final text =
-                    '총원 ${stats['total']}명 / 출석 ${stats['attended']}명\n(${(stats['rate'] as double).toStringAsFixed(1)}%)';
+                final text = '총원 ${stats['total']}명 / 출석 ${stats['attended']}명\n(${(stats['rate'] as double).toStringAsFixed(1)}%)';
                 return Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Expanded(
-                  child: Text(text,
-                      style: TextStyle(color: Colors.grey.shade300),
-                      textAlign: TextAlign.center),
-                ),
-                // ✨ 새로고침 버튼 추가
-                IconButton(
-                  icon: const Icon(Icons.refresh, size: 18, color: Colors.white70,),
-                  onPressed: () {
-                    // setState를 호출하여 FutureBuilder를 다시 실행하게 만듭니다.
-                    setState(() {});
-                  },
-                  tooltip: '출석 현황 새로고침',
-                  ),
-                ],
-              );
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: Text(text,
+                          style: TextStyle(color: Colors.grey.shade300),
+                          textAlign: TextAlign.center),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.refresh, size: 18, color: Colors.white70,),
+                      onPressed: () => setState(() {}),
+                      tooltip: '출석 현황 새로고침',
+                    ),
+                  ],
+                );
               },
             ),
           ),
         ),
-        _buildEditableCell(context, topic.thisMonthExecution, isEditable,
-            () => _showEditDialog(context, topic, userProfile)),
-        _buildEditableCell(context, topic.nextMonthPlan, isEditable,
-            () => _showEditDialog(context, topic, userProfile)),
-      ],
-    );
-  }
-
-  TableRow _buildAccountingRow(BuildContext context, ForumTopic topic,
-      UserProfile userProfile, bool isEditable) {
-    final f = NumberFormat('#,###');
-    Widget monetaryCell = _buildEditableAccountingCell(
-        isEditable: isEditable,
-        onTap: () => _showEditDialog(context, topic, userProfile),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          _buildAccountingItem('이월', f.format(topic.broughtForward)),
-          _buildAccountingItem('수입', f.format(topic.income)),
-          _buildAccountingItem('지출', f.format(topic.expenditure)),
-          const Divider(color: Colors.white54, height: 16),
-          _buildAccountingItem('잔액', f.format(topic.balance), isBold: true)
-        ]));
-    Widget incomeDetailsCell = _buildEditableAccountingCell(
-        isEditable: isEditable,
-        onTap: () => _showEditDialog(context, topic, userProfile),
-        child: Text(topic.incomeDetails.isEmpty ? '내역 없음' : topic.incomeDetails,
-            style: TextStyle(color: Colors.grey.shade300)));
-    Widget expenditureDetailsCell = _buildEditableAccountingCell(
-        isEditable: isEditable,
-        onTap: () => _showEditDialog(context, topic, userProfile),
-        child: Text(
-            topic.expenditureDetails.isEmpty
-                ? '내역 없음'
-                : topic.expenditureDetails,
-            style: TextStyle(color: Colors.grey.shade300)));
-    return TableRow(children: [
-      _buildTitleCell(topic.title),
-      monetaryCell,
-      incomeDetailsCell,
-      expenditureDetailsCell
+      ),
+      _buildEditableCell(context, topic.thisMonthExecution, isEditable,
+          () => _showEditDialog(context, topic, userProfile), width: 250),
+      _buildEditableCell(context, topic.nextMonthPlan, isEditable,
+          () => _showEditDialog(context, topic, userProfile), width: 250),
     ]);
   }
 
-  Widget _buildAccountingItem(String label, String value,
-      {bool isBold = false}) {
+  DataRow _buildAccountingRow(BuildContext context, ForumTopic topic,
+      UserProfile userProfile, bool isEditable) {
+    final f = NumberFormat('#,###');
+    return DataRow(cells: [
+      _buildTitleCell(topic.title, width: 100),
+      _buildEditableAccountingCell(
+        isEditable: isEditable,
+        width: 250,
+        onTap: () => _showEditDialog(context, topic, userProfile),
+        child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildAccountingItem('이월', f.format(topic.broughtForward)),
+              _buildAccountingItem('수입', f.format(topic.income)),
+              _buildAccountingItem('지출', f.format(topic.expenditure)),
+              const Divider(color: Colors.white54, height: 16),
+              _buildAccountingItem('잔액', f.format(topic.balance), isBold: true)
+            ]),
+      ),
+      _buildEditableAccountingCell(
+          isEditable: isEditable,
+          width: 250,
+          onTap: () => _showEditDialog(context, topic, userProfile),
+          child: Text(topic.incomeDetails.isEmpty ? '내역 없음' : topic.incomeDetails,
+              style: TextStyle(color: Colors.grey.shade300))),
+      _buildEditableAccountingCell(
+          isEditable: isEditable,
+          width: 250,
+          onTap: () => _showEditDialog(context, topic, userProfile),
+          child: Text(
+              topic.expenditureDetails.isEmpty
+                  ? '내역 없음'
+                  : topic.expenditureDetails,
+              style: TextStyle(color: Colors.grey.shade300))),
+    ]);
+  }
+
+  // --- ▼ Cell 및 기타 위젯 빌더 함수들 ▼ ---
+
+  DataColumn _buildHeaderColumn(String title, {required double width}) {
+    return DataColumn(
+      label: SizedBox(
+        width: width,
+        child: Center(
+          child: Text(title,
+              style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                  fontSize: 15)),
+        ),
+      ),
+    );
+  }
+
+  DataCell _buildTitleCell(String title, {required double width}) {
+    return DataCell(
+      Container(
+        width: width,
+        color: Colors.grey[850],
+        padding: const EdgeInsets.all(12.0),
+        alignment: Alignment.center,
+        child: Text(title,
+            style: const TextStyle(
+                fontWeight: FontWeight.bold, color: Colors.white),
+            textAlign: TextAlign.center),
+      ),
+    );
+  }
+
+  DataCell _buildContentCell(String content, {required double width}) {
+    return DataCell(
+      SizedBox(
+        width: width,
+        child: Padding(
+          padding: const EdgeInsets.all(12.0),
+          child: Text(content, style: TextStyle(color: Colors.grey.shade300)),
+        ),
+      ),
+    );
+  }
+
+  DataCell _buildEditableCell(BuildContext context, String content,
+      bool isEditable, VoidCallback onTap, {required double width}) {
+    return DataCell(
+      InkWell(
+        onTap: isEditable ? onTap : null,
+        child: Container(
+          width: width,
+          color: isEditable ? Colors.blueGrey[800] : Colors.transparent,
+          padding: const EdgeInsets.all(12.0),
+          alignment: Alignment.centerLeft,
+          child: Row(children: [
+            Expanded(
+                child: Text(content,
+                    style: TextStyle(
+                        color: isEditable
+                            ? Colors.white
+                            : Colors.grey.shade400))),
+            if (isEditable)
+              const Icon(Icons.edit, size: 16, color: Colors.white70)
+          ]),
+        ),
+      ),
+    );
+  }
+
+  // --- ▼▼▼▼▼ 여기 빠졌던 두 함수가 포함되었습니다! ▼▼▼▼▼ ---
+
+  DataCell _buildEditableAccountingCell(
+      {required Widget child,
+      required bool isEditable,
+      required VoidCallback onTap,
+      required double width}) {
+    return DataCell(
+      InkWell(
+        onTap: isEditable ? onTap : null,
+        child: Container(
+          width: width,
+          color: isEditable ? Colors.blueGrey[800] : Colors.transparent,
+          padding: const EdgeInsets.all(12.0),
+          alignment: Alignment.centerLeft,
+          child: child,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAccountingItem(String label, String value, {bool isBold = false}) {
     return Padding(
         padding: const EdgeInsets.symmetric(vertical: 2.0),
         child:
@@ -743,75 +766,7 @@ class _ForumPageState extends State<ForumPage> {
         ]));
   }
 
-  Widget _buildEditableAccountingCell(
-      {required Widget child,
-      required bool isEditable,
-      required VoidCallback onTap}) {
-    return TableCell(
-        verticalAlignment: TableCellVerticalAlignment.middle,
-        child: InkWell(
-            onTap: isEditable ? onTap : null,
-            child: Container(
-                color: isEditable ? Colors.blueGrey[800] : Colors.transparent,
-                padding: const EdgeInsets.all(12.0),
-                child: child)));
-  }
-
-  Widget _buildHeaderCell(String title) {
-    return TableCell(
-        verticalAlignment: TableCellVerticalAlignment.middle,
-        child: Padding(
-            padding:
-                const EdgeInsets.symmetric(vertical: 12.0, horizontal: 8.0),
-            child: Center(
-                child: Text(title,
-                    style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                        fontSize: 15)))));
-  }
-
-  Widget _buildTitleCell(String title) {
-    return TableCell(
-        verticalAlignment: TableCellVerticalAlignment.middle,
-        child: Container(
-            color: Colors.grey[850],
-            padding: const EdgeInsets.all(12.0),
-            child: Text(title,
-                style: const TextStyle(
-                    fontWeight: FontWeight.bold, color: Colors.white),
-                textAlign: TextAlign.center)));
-  }
-
-  Widget _buildContentCell(String content) {
-    return TableCell(
-        verticalAlignment: TableCellVerticalAlignment.middle,
-        child: Padding(
-            padding: const EdgeInsets.all(12.0),
-            child:
-                Text(content, style: TextStyle(color: Colors.grey.shade300))));
-  }
-
-  Widget _buildEditableCell(BuildContext context, String content,
-      bool isEditable, VoidCallback onTap) {
-    return TableCell(
-        verticalAlignment: TableCellVerticalAlignment.middle,
-        child: InkWell(
-            onTap: isEditable ? onTap : null,
-            child: Container(
-                color: isEditable ? Colors.blueGrey[800] : Colors.transparent,
-                padding: const EdgeInsets.all(12.0),
-                child: Row(children: [
-                  Expanded(
-                      child: Text(content,
-                          style: TextStyle(
-                              color: isEditable
-                                  ? Colors.white
-                                  : Colors.grey.shade400))),
-                  if (isEditable)
-                    const Icon(Icons.edit, size: 16, color: Colors.white70)
-                ]))));
-  }
+// forum_page.dart 파일에서 교체할 부분 끝
 
   void _showEditDialog(
       BuildContext context, ForumTopic topic, UserProfile userProfile) {
