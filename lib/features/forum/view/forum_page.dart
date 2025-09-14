@@ -474,48 +474,41 @@ class _ForumPageState extends State<ForumPage> {
         topic.id.split('_').last: topic.nextMonthPlan
     };
 
-    // --- ▼ [수정] Table 위젯을 생성하는 내부 함수 ---
-    Widget buildTable(Map<int, TableColumnWidth> columnWidths) {
-      return Table(
-        border: TableBorder.all(color: Colors.grey.shade800, width: 1.5),
-        columnWidths: columnWidths,
-        defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-        children: [
-          if (showHeader)
-            TableRow(
-              decoration: BoxDecoration(color: Colors.grey[800]),
-              children: [
-                _buildHeaderCell('구분'),
-                _buildHeaderCell('이전달계획'),
-                _buildHeaderCell('이번달실행'),
-                _buildHeaderCell('다음달계획'),
-              ],
-            ),
-          ...topics.map((topic) {
-            final bool isDeveloper = _userPositions.contains('개발자');
-            final bool isResponsible = _userPositions
-                .any((userPos) => topic.responsiblePosition.contains(userPos));
-            final bool isEditable = isDeveloper || isResponsible;
-            final topicKey = topic.id.split('_').last;
+    // --- ▼▼▼▼▼ [오류 원인] 이 부분이 빠졌었습니다! ▼▼▼▼▼ ---
+    // 웹/모바일에서 공통으로 사용할 TableRow 리스트를 미리 생성합니다.
+    List<TableRow> tableRows = [
+      if (showHeader)
+        TableRow(
+          decoration: BoxDecoration(color: Colors.grey[800]),
+          children: [
+            _buildHeaderCell('구분'),
+            _buildHeaderCell('이전달계획'),
+            _buildHeaderCell('이번달실행'),
+            _buildHeaderCell('다음달계획'),
+          ],
+        ),
+      ...topics.map((topic) {
+        final bool isDeveloper = _userPositions.contains('개발자');
+        final bool isResponsible =
+            _userPositions.any((userPos) => topic.responsiblePosition.contains(userPos));
+        final bool isEditable = isDeveloper || isResponsible;
+        final topicKey = topic.id.split('_').last;
 
-            bool isSecretaryTopic = topicKey == '서기';
-            bool isAccountingTopic = topicKey == '회계' || topicKey == '기금';
+        bool isSecretaryTopic = topicKey == '서기';
+        bool isAccountingTopic = topicKey == '회계' || topicKey == '기금';
 
-            if (isSecretaryTopic) {
-              return _buildSecretaryRow(
-                  context, topic, userProfile, previousMonthString, isEditable);
-            } else if (isAccountingTopic) {
-              return _buildAccountingRow(
-                  context, topic, userProfile, isEditable);
-            } else {
-              return _buildDefaultRow(context, topic, userProfile,
-                  previousPlansMap[topicKey] ?? '', isEditable);
-            }
-          }).toList(),
-        ],
-      );
-    }
-    // --- ▲ [수정] Table 위젯을 생성하는 내부 함수 ---
+        if (isSecretaryTopic) {
+          return _buildSecretaryRow(
+              context, topic, userProfile, previousMonthString, isEditable);
+        } else if (isAccountingTopic) {
+          return _buildAccountingRow(context, topic, userProfile, isEditable);
+        } else {
+          return _buildDefaultRow(context, topic, userProfile,
+              previousPlansMap[topicKey] ?? '', isEditable);
+        }
+      }).toList(),
+    ];
+    // --- ▲▲▲▲▲ 여기까지가 `tableRows`를 정의하는 부분입니다. ▲▲▲▲▲ ---
 
     return Card(
       color: Colors.grey[900],
@@ -523,27 +516,34 @@ class _ForumPageState extends State<ForumPage> {
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: kIsWeb
-          ? buildTable(const {
-              0: IntrinsicColumnWidth(flex: 1.5),
-              1: FlexColumnWidth(2.5),
-              2: FlexColumnWidth(3),
-              3: FlexColumnWidth(3),
-            })
-          // --- ▼ [수정] 모바일 환경 레이아웃 ---
+          // --- [웹 환경] ---
+          ? Table(
+              columnWidths: const {
+                0: IntrinsicColumnWidth(flex: 1.5),
+                1: FlexColumnWidth(2.5),
+                2: FlexColumnWidth(3),
+                3: FlexColumnWidth(3),
+              },
+              border: TableBorder.all(color: Colors.grey.shade800, width: 1.5),
+              children: tableRows, // 이제 정상적으로 `tableRows`를 사용할 수 있습니다.
+            )
+          // --- [모바일 환경] ---
           : SingleChildScrollView(
               scrollDirection: Axis.horizontal,
-              // SizedBox를 추가하여 Table의 최소 너비를 강제
               child: SizedBox(
-                width: 850, // (100 + 250 + 250 + 250)
-                child: buildTable(const {
-                  0: FixedColumnWidth(100.0), // 첫 열도 고정 너비로 변경
-                  1: FixedColumnWidth(250.0),
-                  2: FixedColumnWidth(250.0),
-                  3: FixedColumnWidth(250.0),
-                }),
+                width: 850,
+                child: Table(
+                  columnWidths: const {
+                    0: FixedColumnWidth(100.0),
+                    1: FixedColumnWidth(250.0),
+                    2: FixedColumnWidth(250.0),
+                    3: FixedColumnWidth(250.0),
+                  },
+                  border: TableBorder.all(color: Colors.grey.shade800, width: 1.5),
+                  children: tableRows, // 여기서도 동일하게 사용합니다.
+                ),
               ),
             ),
-          // --- ▲ [수정] 모바일 환경 레이아웃 ---
     );
   }
 
@@ -554,27 +554,20 @@ class _ForumPageState extends State<ForumPage> {
         _userPositions.any((pos) => topic.responsiblePosition.contains(pos));
     final bool isEditable = isDeveloper || isResponsible;
 
-    // --- ▼ [수정] Table 위젯을 생성하는 내부 함수 ---
-    Widget buildTable(Map<int, TableColumnWidth> columnWidths) {
-      return Table(
-        border: TableBorder.all(color: Colors.grey.shade800, width: 1.5),
-        columnWidths: columnWidths,
-        defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+    // --- ▼ 웹/모바일에서 공통으로 사용할 TableRow 리스트를 생성합니다. ▼ ---
+    List<TableRow> tableRows = [
+      TableRow(
+        decoration: BoxDecoration(color: Colors.grey[800]),
         children: [
-          TableRow(
-            decoration: BoxDecoration(color: Colors.grey[800]),
-            children: [
-              _buildHeaderCell('구분'),
-              _buildHeaderCell('안건내용'),
-              _buildHeaderCell('토의결과'),
-              _buildHeaderCell('실행내역'),
-            ],
-          ),
-          _buildAgendaRow(context, topic, userProfile, isEditable),
+          _buildHeaderCell('구분'),
+          _buildHeaderCell('안건내용'),
+          _buildHeaderCell('토의결과'),
+          _buildHeaderCell('실행내역'),
         ],
-      );
-    }
-    // --- ▲ [수정] Table 위젯을 생성하는 내부 함수 ---
+      ),
+      _buildAgendaRow(context, topic, userProfile, isEditable),
+    ];
+    // --- ▲ `tableRows` 정의 끝 ▲ ---
 
     return Card(
       color: Colors.grey[900],
@@ -582,28 +575,37 @@ class _ForumPageState extends State<ForumPage> {
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: kIsWeb
-          ? buildTable(const {
-              0: IntrinsicColumnWidth(flex: 1.5),
-              1: FlexColumnWidth(3),
-              2: FlexColumnWidth(3),
-              3: FlexColumnWidth(3),
-            })
-          // --- ▼ [수정] 모바일 환경 레이아웃 ---
+          // --- [웹 환경] ---
+          ? Table(
+              columnWidths: const {
+                0: IntrinsicColumnWidth(flex: 1.5),
+                1: FlexColumnWidth(3),
+                2: FlexColumnWidth(3),
+                3: FlexColumnWidth(3),
+              },
+              border: TableBorder.all(color: Colors.grey.shade800, width: 1.5),
+              children: tableRows, // `tableRows` 변수 사용
+            )
+          // --- [모바일 환경] ---
           : SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: SizedBox(
-                width: 850, // (100 + 250 + 250 + 250)
-                child: buildTable(const {
-                  0: FixedColumnWidth(100.0),
-                  1: FixedColumnWidth(250.0),
-                  2: FixedColumnWidth(250.0),
-                  3: FixedColumnWidth(250.0),
-                }),
+                width: 850,
+                child: Table(
+                  columnWidths: const {
+                    0: FixedColumnWidth(100.0),
+                    1: FixedColumnWidth(250.0),
+                    2: FixedColumnWidth(250.0),
+                    3: FixedColumnWidth(250.0),
+                  },
+                  border: TableBorder.all(color: Colors.grey.shade800, width: 1.5),
+                  children: tableRows, // `tableRows` 변수 사용
+                ),
               ),
             ),
-         // --- ▲ [수정] 모바일 환경 레이아웃 ---
     );
   }
+
 
   TableRow _buildAgendaRow(BuildContext context, ForumTopic topic,
       UserProfile userProfile, bool isEditable) {
