@@ -474,56 +474,69 @@ class _ForumPageState extends State<ForumPage> {
         topic.id.split('_').last: topic.nextMonthPlan
     };
 
+    // 테이블 위젯 생성
+    Widget buildTable(Map<int, TableColumnWidth> columnWidths) {
+      return Table(
+        border: TableBorder.all(color: Colors.grey.shade800, width: 1.5),
+        columnWidths: columnWidths,
+        children: [
+          if (showHeader)
+            TableRow(
+              decoration: BoxDecoration(color: Colors.grey[800]),
+              children: [
+                _buildHeaderCell('구분'),
+                _buildHeaderCell('이전달계획'),
+                _buildHeaderCell('이번달실행'),
+                _buildHeaderCell('다음달계획'),
+              ],
+            ),
+          ...topics.map((topic) {
+            final bool isDeveloper = _userPositions.contains('개발자');
+            final bool isResponsible = _userPositions
+                .any((userPos) => topic.responsiblePosition.contains(userPos));
+            final bool isEditable = isDeveloper || isResponsible;
+            final topicKey = topic.id.split('_').last;
+
+            bool isSecretaryTopic = topicKey == '서기';
+            bool isAccountingTopic = topicKey == '회계' || topicKey == '기금';
+
+            if (isSecretaryTopic) {
+              return _buildSecretaryRow(
+                  context, topic, userProfile, previousMonthString, isEditable);
+            } else if (isAccountingTopic) {
+              return _buildAccountingRow(
+                  context, topic, userProfile, isEditable);
+            } else {
+              return _buildDefaultRow(context, topic, userProfile,
+                  previousPlansMap[topicKey] ?? '', isEditable);
+            }
+          }).toList(),
+        ],
+      );
+    }
+
     return Card(
       color: Colors.grey[900],
       elevation: 4,
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Table(
-          border: TableBorder.all(color: Colors.grey.shade800, width: 1.5),
-          columnWidths: const {
-            0: IntrinsicColumnWidth(),
-            1: FixedColumnWidth(250.0),
-            2: FixedColumnWidth(250.0),
-            3: FixedColumnWidth(250.0),
-          },
-          children: [
-            if (showHeader)
-              TableRow(
-                decoration: BoxDecoration(color: Colors.grey[800]),
-                children: [
-                  _buildHeaderCell('구분'),
-                  _buildHeaderCell('이전달계획'),
-                  _buildHeaderCell('이번달실행'),
-                  _buildHeaderCell('다음달계획'),
-                ],
-              ),
-            ...topics.map((topic) {
-              final bool isDeveloper = _userPositions.contains('개발자');
-              final bool isResponsible = _userPositions
-                  .any((userPos) => topic.responsiblePosition.contains(userPos));
-              final bool isEditable = isDeveloper || isResponsible;
-              final topicKey = topic.id.split('_').last;
-
-              bool isSecretaryTopic = topicKey == '서기';
-              bool isAccountingTopic = topicKey == '회계' || topicKey == '기금';
-
-              if (isSecretaryTopic) {
-                return _buildSecretaryRow(
-                    context, topic, userProfile, previousMonthString, isEditable);
-              } else if (isAccountingTopic) {
-                return _buildAccountingRow(
-                    context, topic, userProfile, isEditable);
-              } else {
-                return _buildDefaultRow(context, topic, userProfile,
-                    previousPlansMap[topicKey] ?? '', isEditable);
-              }
-            }).toList(),
-          ],
-        ),
-      ),
+      // kIsWeb을 사용하여 웹/모바일 환경 분기
+      child: kIsWeb
+          ? buildTable(const { // 웹 환경: FlexColumnWidth 사용
+              0: IntrinsicColumnWidth(flex: 1.5),
+              1: FlexColumnWidth(2.5),
+              2: FlexColumnWidth(3),
+              3: FlexColumnWidth(3),
+            })
+          : SingleChildScrollView( // 모바일 환경: SingleChildScrollView + FixedColumnWidth 사용
+              scrollDirection: Axis.horizontal,
+              child: buildTable(const {
+                0: IntrinsicColumnWidth(), // 첫 열은 내용에 맞게
+                1: FixedColumnWidth(250.0), // 나머지 열은 250px 고정
+                2: FixedColumnWidth(250.0),
+                3: FixedColumnWidth(250.0),
+              }),
+            ),
     );
   }
 
@@ -534,38 +547,50 @@ class _ForumPageState extends State<ForumPage> {
         _userPositions.any((pos) => topic.responsiblePosition.contains(pos));
     final bool isEditable = isDeveloper || isResponsible;
 
+    // 테이블 위젯 생성
+    Widget buildTable(Map<int, TableColumnWidth> columnWidths) {
+      return Table(
+        border: TableBorder.all(color: Colors.grey.shade800, width: 1.5),
+        columnWidths: columnWidths,
+        children: [
+          TableRow(
+            decoration: BoxDecoration(color: Colors.grey[800]),
+            children: [
+              _buildHeaderCell('구분'),
+              _buildHeaderCell('안건내용'),
+              _buildHeaderCell('토의결과'),
+              _buildHeaderCell('실행내역'),
+            ],
+          ),
+          _buildAgendaRow(context, topic, userProfile, isEditable),
+        ],
+      );
+    }
+
     return Card(
       color: Colors.grey[900],
       elevation: 4,
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Table(
-          border: TableBorder.all(color: Colors.grey.shade800, width: 1.5),
-          columnWidths: const {
-            0: IntrinsicColumnWidth(),
-            1: FixedColumnWidth(250.0),
-            2: FixedColumnWidth(250.0),
-            3: FixedColumnWidth(250.0),
-          },
-          children: [
-            TableRow(
-              decoration: BoxDecoration(color: Colors.grey[800]),
-              children: [
-                _buildHeaderCell('구분'),
-                _buildHeaderCell('안건내용'),
-                _buildHeaderCell('토의결과'),
-                _buildHeaderCell('실행내역'),
-              ],
+      // kIsWeb을 사용하여 웹/모바일 환경 분기
+      child: kIsWeb
+          ? buildTable(const { // 웹 환경
+              0: IntrinsicColumnWidth(flex: 1.5),
+              1: FlexColumnWidth(3),
+              2: FlexColumnWidth(3),
+              3: FlexColumnWidth(3),
+            })
+          : SingleChildScrollView( // 모바일 환경
+              scrollDirection: Axis.horizontal,
+              child: buildTable(const {
+                0: IntrinsicColumnWidth(),
+                1: FixedColumnWidth(250.0),
+                2: FixedColumnWidth(250.0),
+                3: FixedColumnWidth(250.0),
+              }),
             ),
-            _buildAgendaRow(context, topic, userProfile, isEditable),
-          ],
-        ),
-      ),
     );
   }
-
 
   TableRow _buildAgendaRow(BuildContext context, ForumTopic topic,
       UserProfile userProfile, bool isEditable) {
